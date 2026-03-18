@@ -42,6 +42,7 @@ function bootstrap() {
     taskForm: document.getElementById("task-form"),
     taskIdInput: document.getElementById("task-id"),
     deleteTaskBtn: document.getElementById("delete-task"),
+    taskDone: document.getElementById("task-done"),
     projectForm: document.getElementById("project-form"),
     projectSelect: document.getElementById("project-select"),
     stepSelect: document.getElementById("step-select"),
@@ -66,7 +67,10 @@ function bootstrap() {
 
   const ui = {
     projectFormLegend: document.querySelector("#projects-view summary"),
-    projectIdInput: document.getElementById("project-id")
+    projectIdInput: document.getElementById("project-id"),
+    taskDetails: document.querySelector("#calendar-view details"),
+    projectSubmit: document.querySelector("#project-form button[type='submit']"),
+    taskSubmit: document.querySelector("#task-form button[type='submit']")
   };
 
   const THEMES = ["black", "white"];
@@ -131,6 +135,7 @@ function bootstrap() {
           projectId: data.projectId || "",
           stepId: data.stepId || "",
           note: data.note || ""
+          done: els.taskDone?.checked || false
         });
       } else {
         state.tasks.push({
@@ -142,7 +147,8 @@ function bootstrap() {
           projectId: data.projectId || "",
           stepId: data.stepId || "",
           note: data.note || "",
-          order: state.tasks.length
+          order: state.tasks.length,
+          done: els.taskDone?.checked || false
         });
       }
       persist();
@@ -375,7 +381,7 @@ function bootstrap() {
       els.calendarGrid.appendChild(empty);
     }
 
-    const tasks = visibleTasks();
+    const tasks = visibleTasks().filter(isValidTask);
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = toDateStrLocal(new Date(year, month, day));
       const cell = document.createElement("div");
@@ -389,11 +395,11 @@ function bootstrap() {
       const chipsBox = document.createElement("div");
       chipsBox.className = "chips";
 
-      const dayTasks = tasks.filter((t) => dateStr >= t.start && dateStr <= t.end);
-      dayTasks.forEach((t) => chipsBox.appendChild(makeTaskChip(t)));
+    const dayTasks = tasks.filter((t) => dateStr >= t.start && dateStr <= t.end);
+    dayTasks.forEach((t) => chipsBox.appendChild(makeTaskChip(t)));
 
-      cell.appendChild(header);
-      cell.appendChild(chipsBox);
+    cell.appendChild(header);
+    cell.appendChild(chipsBox);
       els.calendarGrid.appendChild(cell);
     }
   }
@@ -414,7 +420,9 @@ function bootstrap() {
       els.timelineHeader.appendChild(cell);
     }
 
-    const tasks = visibleTasks().filter((t) => overlapsMonth(t, year, month));
+    const tasks = visibleTasks()
+      .filter(isValidTask)
+      .filter((t) => overlapsMonth(t, year, month));
     tasks.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     els.timelineGrid.innerHTML = "";
     if (tasks.length === 0) {
@@ -587,6 +595,10 @@ function bootstrap() {
     return list;
   }
 
+  function isValidTask(t) {
+    return t && t.start && t.end;
+  }
+
   function makeTaskChip(task) {
     const tmpl = document.getElementById("task-chip-template");
     const node = tmpl.content.firstElementChild.cloneNode(true);
@@ -600,10 +612,12 @@ function bootstrap() {
   }
 
   function isTaskDone(task) {
-    if (!task.stepId) return false;
-    const project = state.projects.find((p) => p.id === task.projectId);
-    const step = project?.steps.find((s) => s.id === task.stepId);
-    return Boolean(step?.done);
+    if (task.stepId) {
+      const project = state.projects.find((p) => p.id === task.projectId);
+      const step = project?.steps.find((s) => s.id === task.stepId);
+      if (step) return Boolean(step.done);
+    }
+    return Boolean(task.done);
   }
 
   function overlapsMonth(task, year, month) {
@@ -704,9 +718,11 @@ function bootstrap() {
     els.taskForm.end.value = task.end;
     els.noEnd.checked = false;
     els.taskForm.note.value = task.note || "";
+    if (els.taskDone) els.taskDone.checked = !!task.done;
     els.projectSelect.value = task.projectId || "";
     populateStepSelect(task.projectId || "");
     els.stepSelect.value = task.stepId || "";
+    if (ui.taskDetails) ui.taskDetails.open = true;
     const submitBtn = els.taskForm?.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.textContent = "更新日期条";
     if (els.deleteTaskBtn) els.deleteTaskBtn.disabled = false;
@@ -720,6 +736,7 @@ function bootstrap() {
     stepDraft = project.steps.map((s) => ({ ...s }));
     renderStepDraft();
     ui.projectFormLegend.textContent = "编辑工程";
+    if (ui.projectSubmit) ui.projectSubmit.textContent = "更新工程";
     if (els.projectDraft) els.projectDraft.checked = !!project.draft;
     const formDetails = document.querySelector("#projects-view details");
     if (formDetails) formDetails.open = true;
@@ -741,7 +758,7 @@ function bootstrap() {
       .map((s) => ({ ...s, title: (s.title || "").trim() }))
       .filter((s) => s.title.length > 0)
       .map((s, idx) => ({
-        id: existingSteps[idx]?.id || s.id || `step-${uuid()}`,
+        id: s.id || existingSteps[idx]?.id || `step-${uuid()}`,
         title: s.title,
         done: existingSteps[idx]?.done ?? s.done ?? false,
         order: idx + 1
@@ -860,6 +877,7 @@ function bootstrap() {
     if (els.taskIdInput) els.taskIdInput.value = "";
     if (els.taskForm) els.taskForm.reset();
     if (els.noEnd) els.noEnd.checked = false;
+    if (els.taskDone) els.taskDone.checked = false;
     const submitBtn = els.taskForm?.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.textContent = "保存日期条";
     if (els.deleteTaskBtn) els.deleteTaskBtn.disabled = true;
@@ -870,6 +888,7 @@ function bootstrap() {
     stepDraft = [];
     renderStepDraft();
     ui.projectFormLegend.textContent = "新增工程";
+    if (ui.projectSubmit) ui.projectSubmit.textContent = "创建工程";
     if (els.projectDraft) els.projectDraft.checked = false;
   }
 
