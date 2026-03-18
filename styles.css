@@ -48,17 +48,17 @@ body[data-theme="gray"] {
 }
 
 body[data-theme="sunny"] {
-  --bg: #fffdf6;
-  --panel: #fffaf0;
-  --muted: #8c6a00;
-  --grid-line: #f2e2b8;
-  --text: #3f2e00;
-  --card: #fff6df;
-  --chip-bg: rgba(255,213,102,0.25);
-  --chip-hover: rgba(255,213,102,0.35);
-  --input-bg: #fff8e8;
-  --page-bg: #fffdf6;
-  --accent: #f6c344;
+  --bg: #fff9e6;
+  --panel: #fff3c8;
+  --muted: #a67c00;
+  --grid-line: #f2dc9b;
+  --text: #3c2a00;
+  --card: #fff0b8;
+  --chip-bg: rgba(255,207,102,0.3);
+  --chip-hover: rgba(255,207,102,0.42);
+  --input-bg: #fff4cc;
+  --page-bg: #fff9e6;
+  --accent: #f4b000;
   color-scheme: light;
 }
 

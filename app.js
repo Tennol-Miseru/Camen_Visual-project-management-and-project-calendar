@@ -81,7 +81,7 @@ function bootstrap() {
   const THEMES = ["black", "white", "gray", "sunny"];
   const RATIO_DEFAULT = 70;
   const ZOOM_MIN = 0.2;
-  const ZOOM_MAX = 4;
+  const ZOOM_MAX = 4.5;
   let stepDraft = [];
   let editingTaskId = null;
 
