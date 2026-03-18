@@ -6,16 +6,36 @@ A small engineering calendar tool with visual timeline bars for date-based tasks
 主要用于解决多项目并行时思路不清、便签或脑内难以统筹的问题。该工具几乎全部用 Codex 完成，欢迎自用或修改。  
 Primarily designed to keep clarity when running multiple projects in parallel; built almost entirely with Codex—feel free to use and modify.
 
-功能 Features
+功能
 
 - 月历 + 时间轴双视图，彩色跨天日期条
 - 工程步骤管理，步骤可与日期条关联并筛选
 - 本地 `localStorage` 自动保存；JSON 导入/导出便于备份与迁移
 - 纯前端单页：直接打开 `index.html` 即可
 
-使用 Usage
+使用
 
 - 打开 `index.html`（本地或任何静态托管）。  
 - 日期视图：点击日期条可编辑/删除；时间轴展示跨天跨度。  
 - 工程视图：编辑工程和步骤，点击步骤可筛选相关日期条。  
 - 底部“导入/导出”按钮：JSON 备份或恢复数据，跨浏览器/设备同步。
+
+Features
+
+Dual views: calendar + timeline, with color-coded bars spanning multiple days
+
+Project workflow management: steps can be linked to date ranges and filtered
+
+Automatic local persistence via localStorage; supports JSON import/export for backup and migration
+
+Pure front-end single-page app: runs directly by opening index.html
+
+Usage
+
+Open index.html (locally or via any static hosting).
+
+Date view: click a date bar to edit or delete; the timeline visualizes multi-day spans.
+
+Project view: manage projects and steps; selecting a step filters related date bars.
+
+Use the “Import/Export” buttons at the bottom to back up or restore data via JSON, enabling cross-browser/device synchronization.
