@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -33,11 +33,14 @@
     <section id="calendar-view" class="view active">
       <div class="toolbar">
         <div class="month-nav">
-          <button id="prev-month" aria-label="上个月">←</button>
+          <button id="prev-month" aria-label="上一月">←</button>
           <div id="month-label" class="month-label"></div>
-          <button id="next-month" aria-label="下个月">→</button>
+          <button id="next-month" aria-label="下一月">→</button>
         </div>
-        <div id="legend" class="legend"></div>
+        <div class="toolbar-right">
+          <div id="legend" class="legend"></div>
+          <button type="button" class="btn-ghost filter-btn" id="filter-indicator" hidden>筛选：仅当前步骤（点此清除）</button>
+        </div>
       </div>
 
       <div id="calendar-grid" class="calendar-grid"></div>

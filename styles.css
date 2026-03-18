@@ -105,6 +105,11 @@ main { display: grid; gap: 16px; }
   gap: 12px;
   flex-wrap: wrap;
 }
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .month-nav { display: inline-flex; gap: 8px; align-items: center; }
 .month-nav button {
   width: 36px; height: 36px;
@@ -261,6 +266,9 @@ button:hover { filter: brightness(1.05); }
   cursor: pointer;
 }
 .btn-ghost:hover { color: var(--text); background: var(--chip-hover); }
+.filter-btn {
+  white-space: nowrap;
+}
 
 .step-list { display: grid; gap: 8px; margin-top: 6px; }
 .step-row {
