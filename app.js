@@ -134,7 +134,7 @@ function bootstrap() {
           color: data.color || "#00bfa6",
           projectId: data.projectId || "",
           stepId: data.stepId || "",
-          note: data.note || ""
+          note: data.note || "",
           done: els.taskDone?.checked || false
         });
       } else {
