@@ -77,7 +77,7 @@ function bootstrap() {
     taskSubmit: document.querySelector("#task-form button[type='submit']")
   };
 
-  const THEMES = ["black", "white"];
+  const THEMES = ["black", "white", "gray"];
   const RATIO_DEFAULT = 70;
   const ZOOM_MIN = 0.4;
   const ZOOM_MAX = 3;

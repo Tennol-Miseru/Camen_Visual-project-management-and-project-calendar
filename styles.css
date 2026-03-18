@@ -32,6 +32,20 @@ body[data-theme="white"] {
   color-scheme: light;
 }
 
+body[data-theme="gray"] {
+  --bg: #1a1c1f;
+  --panel: #202329;
+  --muted: #9aa0aa;
+  --grid-line: #2c3038;
+  --text: #e5e7eb;
+  --card: #242832;
+  --chip-bg: rgba(255,255,255,0.08);
+  --chip-hover: rgba(255,255,255,0.14);
+  --input-bg: #1f2229;
+  --page-bg: #1a1c1f;
+  color-scheme: dark;
+}
+
 * { box-sizing: border-box; }
 body {
   margin: 0;
