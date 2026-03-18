@@ -5,7 +5,7 @@
 一个工程日历小工具，核心是可视化的日期事项条与项目工序页，并支持导入/导出数据实现跨端同步。  
 A small engineering calendar tool with visual timeline bars for date-based tasks and dedicated pages for project workflows. It supports data import/export for cross-device sync.
 
-主要用于解决多项目并行时思路不清、便签或脑内难以统筹的问题。该工具几乎全部用 Codex 完成，欢迎自用或修改。  
+主要用于解决多项目并行时统筹思路不清晰的问题。该工具几乎全部用 Codex 完成，欢迎自用或修改。  
 Primarily designed to keep clarity when running multiple projects in parallel; built almost entirely with Codex—feel free to use and modify.
 
 功能
