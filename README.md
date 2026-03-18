@@ -14,12 +14,14 @@ Primarily designed to keep clarity when running multiple projects in parallel; b
 - 工程步骤管理，步骤可与日期条关联并筛选
 - 本地 `localStorage` 自动保存；JSON 导入/导出便于备份与迁移
 - 纯前端单页：直接打开 `index.html` 即可
+- 因为这是html所以它可以存为浏览器书签，这太方便了不是吗？
 
 使用
 
 - 打开 `index.html`。  
-- 日期视图：点击日期条可编辑/删除；时间轴展示跨天跨度。  
-- 工程视图：编辑工程和步骤，点击步骤可筛选相关日期条。  
+- 日期视图：点击日期条可编辑/删除；时间轴展示跨天跨度。
+- 工程视图：编辑工程和步骤，点击步骤可筛选相关日期条。
+- 拖拽改变日期条和工程步骤的顺序。
 - 底部“导入/导出”按钮：JSON 备份或恢复数据，跨浏览器/设备同步。
 
 Features
@@ -32,6 +34,8 @@ Automatic local persistence via `localStorage`; supports JSON import/export for 
 
 Pure front-end single-page app: runs directly by opening `index.html`
 
+Since this is HTML, it can be saved as a browser bookmark—pretty convenient, isn’t it?
+
 Usage
 
 Open `index.html` .
@@ -39,5 +43,7 @@ Open `index.html` .
 Date view: click a date bar to edit or delete; the timeline visualizes multi-day spans.
 
 Project view: manage projects and steps; selecting a step filters related date bars.
+
+Drag to reorder the date bars and project steps.
 
 Use the “Import/Export” buttons at the bottom to back up or restore data via JSON, enabling cross-browser/device synchronization.
