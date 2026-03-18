@@ -637,8 +637,9 @@ function bootstrap() {
   }
 
   function monthEnd(startStr) {
+    // extend to the end of the next month (跨月末尾)
     const [y, m] = startStr.split("-").map(Number);
-    return toDateStrLocal(new Date(y, m, 0));
+    return toDateStrLocal(new Date(y, m + 1, 0));
   }
 
   function parseDate(str) {
