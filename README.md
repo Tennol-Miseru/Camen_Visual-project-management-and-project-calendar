@@ -10,7 +10,7 @@ Primarily designed to keep clarity when running multiple projects in parallel; b
 
 功能
 
-- 月历、时间轴双视图，彩色跨天日期条
+- 月历、时间轴双视图，可同屏，彩色跨天日期条
 - 工程步骤管理，步骤可与日期条关联并筛选
 - 本地 `localStorage` 自动保存；JSON 导入/导出便于备份与迁移
 - 纯前端单页：直接打开 `index.html` 即可
@@ -26,7 +26,7 @@ Primarily designed to keep clarity when running multiple projects in parallel; b
 
 Features
 
-Dual views: calendar + timeline, with color-coded bars spanning multiple days
+Dual views of calendar and timeline, available on the same screen, featuring color-coded bars spanning multiple days.
 
 Project workflow management: steps can be linked to date ranges and filtered
 
