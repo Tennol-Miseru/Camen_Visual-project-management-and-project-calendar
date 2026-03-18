@@ -69,6 +69,10 @@
 
       <details class="panel">
         <summary>添加 / 编辑日期条</summary>
+        <div class="form-switch">
+          <span class="muted">模式切换</span>
+          <button type="button" class="btn-ghost" id="task-new-btn">切换到新建</button>
+        </div>
         <form id="task-form" class="form-grid">
           <input type="hidden" name="taskId" id="task-id">
           <label>标题
@@ -76,6 +80,9 @@
           </label>
           <label>颜色
             <input required name="color" type="color" value="#00bfa6">
+            <label class="inline">
+              <input type="checkbox" id="use-project-color"> 使用工程色
+            </label>
           </label>
           <label>开始日期
             <input required name="start" type="date" id="start-date">
@@ -116,6 +123,10 @@
 
       <details class="panel">
         <summary>新增工程</summary>
+        <div class="form-switch">
+          <span class="muted">模式切换</span>
+          <button type="button" class="btn-ghost" id="project-new-btn">切换到新建</button>
+        </div>
         <form id="project-form" class="form-grid">
           <input type="hidden" name="projectId" id="project-id">
           <label>工程名称

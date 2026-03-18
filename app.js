@@ -44,6 +44,8 @@ function bootstrap() {
     taskIdInput: document.getElementById("task-id"),
     deleteTaskBtn: document.getElementById("delete-task"),
     taskDone: document.getElementById("task-done"),
+    useProjectColor: document.getElementById("use-project-color"),
+    taskNewBtn: document.getElementById("task-new-btn"),
     projectForm: document.getElementById("project-form"),
     projectSelect: document.getElementById("project-select"),
     stepSelect: document.getElementById("step-select"),
@@ -120,6 +122,10 @@ function bootstrap() {
       const data = Object.fromEntries(new FormData(els.taskForm));
       if (!data.title.trim()) return;
       if (!data.start) return;
+      if (els.useProjectColor && els.useProjectColor.checked && data.projectId) {
+        data.color = getProjectColor(data.projectId);
+        if (els.taskForm.color) els.taskForm.color.value = data.color;
+      }
       if (els.noEnd.checked) {
         data.end = monthEnd(data.start);
         els.endDate.value = data.end;
@@ -192,9 +198,25 @@ function bootstrap() {
     });
 
     els.projectSelect.addEventListener("change", () => populateStepSelect(els.projectSelect.value));
+    els.projectSelect.addEventListener("change", () => {
+      if (els.useProjectColor && els.useProjectColor.checked && els.projectSelect.value) {
+        const c = getProjectColor(els.projectSelect.value);
+        if (els.taskForm.color) els.taskForm.color.value = c;
+      }
+    });
     els.addStepBtn.addEventListener("click", () => {
       stepDraft.push({ id: `step-${uuid()}`, title: `步骤 ${stepDraft.length + 1}`, done: false });
       renderStepDraft();
+    });
+
+    if (els.taskNewBtn) els.taskNewBtn.addEventListener("click", () => {
+      resetTaskForm();
+      if (ui.taskDetails) ui.taskDetails.open = true;
+    });
+    if (els.projectNewBtn) els.projectNewBtn.addEventListener("click", () => {
+      resetProjectDraft();
+      const formDetails = document.querySelector("#projects-view details");
+      if (formDetails) formDetails.open = true;
     });
 
     if (els.deleteTaskBtn) {
@@ -763,6 +785,12 @@ function bootstrap() {
     els.projectSelect.value = task.projectId || "";
     populateStepSelect(task.projectId || "");
     els.stepSelect.value = task.stepId || "";
+    if (els.useProjectColor && task.projectId) {
+      const projColor = getProjectColor(task.projectId);
+      els.useProjectColor.checked = task.color === projColor;
+    } else if (els.useProjectColor) {
+      els.useProjectColor.checked = false;
+    }
     if (ui.taskDetails) ui.taskDetails.open = true;
     const submitBtn = els.taskForm?.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.textContent = "更新日期条";
@@ -919,6 +947,7 @@ function bootstrap() {
     if (els.taskForm) els.taskForm.reset();
     if (els.noEnd) els.noEnd.checked = false;
     if (els.taskDone) els.taskDone.checked = false;
+    if (els.useProjectColor) els.useProjectColor.checked = false;
     const submitBtn = els.taskForm?.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.textContent = "保存日期条";
     if (els.deleteTaskBtn) els.deleteTaskBtn.disabled = true;
@@ -969,5 +998,11 @@ function bootstrap() {
 
   function getProjectName(projectId) {
     return state.projects.find((p) => p.id === projectId)?.name || "";
+  }
+
+  function getProjectColor(projectId) {
+    const firstTask = state.tasks.find((t) => t.projectId === projectId && t.color);
+    if (firstTask) return firstTask.color;
+    return "#00bfa6";
   }
 }
