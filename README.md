@@ -8,7 +8,7 @@ Primarily designed to keep clarity when running multiple projects in parallel; b
 
 功能
 
-- 月历 + 时间轴双视图，彩色跨天日期条
+- 月历、时间轴双视图，彩色跨天日期条
 - 工程步骤管理，步骤可与日期条关联并筛选
 - 本地 `localStorage` 自动保存；JSON 导入/导出便于备份与迁移
 - 纯前端单页：直接打开 `index.html` 即可
@@ -26,13 +26,13 @@ Dual views: calendar + timeline, with color-coded bars spanning multiple days
 
 Project workflow management: steps can be linked to date ranges and filtered
 
-Automatic local persistence via localStorage; supports JSON import/export for backup and migration
+Automatic local persistence via `localStorage`; supports JSON import/export for backup and migration
 
-Pure front-end single-page app: runs directly by opening index.html
+Pure front-end single-page app: runs directly by opening `index.html`
 
 Usage
 
-Open index.html (locally or via any static hosting).
+Open `index.html` (locally or via any static hosting).
 
 Date view: click a date bar to edit or delete; the timeline visualizes multi-day spans.
 
