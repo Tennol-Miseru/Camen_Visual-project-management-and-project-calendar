@@ -853,12 +853,17 @@ function bootstrap() {
     stepDraft.forEach((step, idx) => {
       const row = document.createElement("div");
       row.className = "step-row";
-      row.draggable = true;
+      row.draggable = false;
       row.dataset.idx = idx;
 
       const handle = document.createElement("div");
       handle.className = "drag-handle";
       handle.textContent = "↕";
+      handle.draggable = true;
+      handle.addEventListener("dragstart", (e) => onStepDragStart(e, idx));
+      handle.addEventListener("dragover", onStepDragOver);
+      handle.addEventListener("dragleave", onStepDragLeave);
+      handle.addEventListener("drop", (e) => onStepDrop(e, idx));
       row.appendChild(handle);
 
       const input = document.createElement("input");
@@ -877,7 +882,6 @@ function bootstrap() {
         renderStepDraft();
       });
 
-      row.addEventListener("dragstart", (e) => onStepDragStart(e, idx));
       row.addEventListener("dragover", onStepDragOver);
       row.addEventListener("dragleave", onStepDragLeave);
       row.addEventListener("drop", (e) => onStepDrop(e, idx));
