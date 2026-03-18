@@ -1,8 +1,9 @@
-﻿// rebuilt clean version
+﻿// Engineering calendar main script
 
 document.addEventListener("DOMContentLoaded", bootstrap);
 
 function bootstrap() {
+  // ---------- storage helpers ----------
   const storage = {
     load(key, fallback) {
       try {
@@ -17,7 +18,8 @@ function bootstrap() {
     }
   };
 
-  const uuid = () => (crypto?.randomUUID ? crypto.randomUUID() : id--);
+  let uidCounter = Date.now();
+  const uuid = () => (crypto?.randomUUID ? crypto.randomUUID() : `id-${uidCounter++}`);
 
   const seedProjects = [];
   const seedTasks = [];
@@ -62,6 +64,7 @@ function bootstrap() {
   let stepDraft = [];
   let editingTaskId = null;
 
+  // init
   bindTabs();
   bindNav();
   bindForms();
@@ -71,6 +74,7 @@ function bootstrap() {
   bindImportExport();
   renderAll();
 
+  // ---------- bindings ----------
   function bindTabs() {
     els.tabs.forEach((tab) => {
       tab.addEventListener("click", () => {
@@ -88,6 +92,7 @@ function bootstrap() {
   }
 
   function bindForms() {
+    // task submit
     els.taskForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const data = Object.fromEntries(new FormData(els.taskForm));
@@ -127,6 +132,7 @@ function bootstrap() {
       renderAll();
     });
 
+    // project submit
     els.projectForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const data = Object.fromEntries(new FormData(els.projectForm));
@@ -142,7 +148,7 @@ function bootstrap() {
         }
       } else {
         state.projects.push({
-          id: proj-,
+          id: `proj-${uuid()}`,
           name: data.name.trim(),
           description: data.description || "",
           steps
@@ -158,7 +164,7 @@ function bootstrap() {
 
     els.projectSelect.addEventListener("change", () => populateStepSelect(els.projectSelect.value));
     els.addStepBtn.addEventListener("click", () => {
-      stepDraft.push({ id: step-, title: 步骤  });
+      stepDraft.push({ id: `step-${uuid()}`, title: `步骤 ${stepDraft.length + 1}`, done: false });
       renderStepDraft();
     });
 
@@ -173,7 +179,7 @@ function bootstrap() {
         persist();
         resetTaskForm();
         renderAll();
-        console.log(删除日期条，数量变化： -> );
+        console.log(`删除日期条，数量变化：${before} -> ${state.tasks.length}`);
       });
     }
   }
@@ -191,7 +197,7 @@ function bootstrap() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = engineering-calendar-.json;
+        a.download = `engineering-calendar-${Date.now()}.json`;
         a.click();
         URL.revokeObjectURL(url);
       });
@@ -227,6 +233,7 @@ function bootstrap() {
     }
   }
 
+  // ---------- render ----------
   function renderAll() {
     populateProjectSelect();
     populateStepSelect(els.projectSelect.value);
@@ -284,7 +291,7 @@ function bootstrap() {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const startOffset = firstDay.getDay();
     const todayStr = toDateStrLocal(new Date());
-    els.monthLabel.textContent = ${year}年 月;
+    els.monthLabel.textContent = `${year}年 ${month + 1}月`;
     els.calendarGrid.innerHTML = "";
 
     const weekdayNames = ["日", "一", "二", "三", "四", "五", "六"];
@@ -313,7 +320,7 @@ function bootstrap() {
 
       const header = document.createElement("div");
       header.className = "date";
-      header.innerHTML = <strong></strong><span></span>;
+      header.innerHTML = `<strong>${day}</strong><span>${weekdayNames[new Date(year, month, day).getDay()]}</span>`;
 
       const chipsBox = document.createElement("div");
       chipsBox.className = "chips";
@@ -332,7 +339,7 @@ function bootstrap() {
     const month = state.viewDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    els.timelineHeader.style.gridTemplateColumns = epeat(, minmax(24px, 1fr));
+    els.timelineHeader.style.gridTemplateColumns = `repeat(${daysInMonth}, minmax(24px, 1fr))`;
     els.timelineHeader.innerHTML = "";
     for (let i = 1; i <= daysInMonth; i++) {
       const cell = document.createElement("div");
@@ -353,14 +360,14 @@ function bootstrap() {
     tasks.forEach((task) => {
       const row = document.createElement("div");
       row.className = "timeline-row";
-      row.style.gridTemplateColumns = epeat(, minmax(24px, 1fr));
+      row.style.gridTemplateColumns = `repeat(${daysInMonth}, minmax(24px, 1fr))`;
 
       const bar = document.createElement("div");
       bar.className = "task-bar";
       bar.style.background = task.color;
-      bar.style.gridColumn = ${clampToMonth(task.start, year, month)} / ;
+      bar.style.gridColumn = `${clampToMonth(task.start, year, month)} / ${clampToMonth(task.end, year, month) + 1}`;
       bar.textContent = task.title;
-      bar.title = ${task.start} ~ ;
+      bar.title = `${task.start} ~ ${task.end}`;
       bar.addEventListener("click", () => startEditTask(task));
       row.appendChild(bar);
       els.timelineGrid.appendChild(row);
@@ -410,7 +417,7 @@ function bootstrap() {
         const chip = document.createElement("div");
         chip.className = "step-chip";
         chip.dataset.stepId = s.id;
-        chip.innerHTML = <span class="badge"></span> ;
+        chip.innerHTML = `<span class="badge">${idx + 1}</span> ${s.title}`;
         chip.addEventListener("click", () => {
           state.filterStepId = s.id;
           renderAll();
@@ -419,13 +426,26 @@ function bootstrap() {
           ev.stopPropagation();
           startEditProject(p);
         });
+
+        const check = document.createElement("input");
+        check.type = "checkbox";
+        check.checked = Boolean(s.done);
+        check.title = "标记步骤已完成";
+        check.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          s.done = !s.done;
+          persist();
+          renderProjects();
+        });
+        chip.appendChild(check);
+
         stepsBox.appendChild(chip);
       });
 
       const related = document.createElement("div");
       related.style.color = "var(--muted)";
       const taskCount = state.tasks.filter((t) => t.projectId === p.id).length;
-      related.textContent = 关联日期条： 条;
+      related.textContent = `关联日期条：${taskCount} 条`;
 
       card.appendChild(head);
       card.appendChild(desc);
@@ -435,6 +455,7 @@ function bootstrap() {
     });
   }
 
+  // ---------- helpers ----------
   function visibleTasks() {
     if (!state.filterStepId) return state.tasks;
     return state.tasks.filter((t) => t.stepId === state.filterStepId);
@@ -445,7 +466,7 @@ function bootstrap() {
     const node = tmpl.content.firstElementChild.cloneNode(true);
     node.querySelector(".dot").style.background = task.color;
     node.querySelector(".text").textContent = task.title;
-    node.title = ${task.start} ~ ;
+    node.title = `${task.start} ~ ${task.end}`;
     node.addEventListener("click", () => startEditTask(task));
     return node;
   }
@@ -477,7 +498,7 @@ function bootstrap() {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
     const d = String(date.getDate()).padStart(2, "0");
-    return ${y}--;
+    return `${y}-${m}-${d}`;
   }
 
   function parseDate(str) {
@@ -494,7 +515,7 @@ function bootstrap() {
   }
 
   function populateProjectSelect() {
-    els.projectSelect.innerHTML = <option value="">（可选）</option>;
+    els.projectSelect.innerHTML = `<option value="">（可选）</option>`;
     state.projects.forEach((p) => {
       const opt = document.createElement("option");
       opt.value = p.id;
@@ -506,12 +527,12 @@ function bootstrap() {
   function populateStepSelect(projectId) {
     els.stepSelect.innerHTML = "";
     if (!projectId) {
-      els.stepSelect.innerHTML = <option value="">（先选工程）</option>;
+      els.stepSelect.innerHTML = `<option value="">（先选工程）</option>`;
       return;
     }
     const project = state.projects.find((p) => p.id === projectId);
     if (!project) return;
-    els.stepSelect.innerHTML = <option value="">（可选）</option>;
+    els.stepSelect.innerHTML = `<option value="">（可选）</option>`;
     project.steps.forEach((s) => {
       const opt = document.createElement("option");
       opt.value = s.id;
@@ -556,7 +577,7 @@ function bootstrap() {
     persist();
     populateProjectSelect();
     renderAll();
-    console.log(删除工程 ，移除任务  条);
+    console.log(`删除工程 ${projectId}，移除任务 ${taskBefore - state.tasks.length} 条`);
   }
 
   function normalizeSteps(draft, existingSteps) {
@@ -564,8 +585,9 @@ function bootstrap() {
       .map((s) => ({ ...s, title: (s.title || "").trim() }))
       .filter((s) => s.title.length > 0)
       .map((s, idx) => ({
-        id: existingSteps[idx]?.id || s.id || step-,
+        id: existingSteps[idx]?.id || s.id || `step-${uuid()}`,
         title: s.title,
+        done: existingSteps[idx]?.done ?? s.done ?? false,
         order: idx + 1
       }));
 
@@ -592,7 +614,7 @@ function bootstrap() {
 
       const input = document.createElement("input");
       input.value = step.title;
-      input.placeholder = 步骤 ;
+      input.placeholder = `步骤 ${idx + 1}`;
       input.addEventListener("input", (e) => {
         stepDraft[idx].title = e.target.value;
       });
