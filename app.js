@@ -66,7 +66,8 @@ function bootstrap() {
     startDate: document.getElementById("start-date"),
     endDate: document.getElementById("end-date"),
     draftList: document.getElementById("draft-list"),
-    projectDraft: document.getElementById("project-draft")
+    projectDraft: document.getElementById("project-draft"),
+    toast: document.getElementById("toast")
   };
 
   const ui = {
@@ -77,7 +78,7 @@ function bootstrap() {
     taskSubmit: document.querySelector("#task-form button[type='submit']")
   };
 
-  const THEMES = ["black", "white", "gray"];
+  const THEMES = ["black", "white", "gray", "sunny"];
   const RATIO_DEFAULT = 70;
   const ZOOM_MIN = 0.4;
   const ZOOM_MAX = 3;
@@ -166,6 +167,7 @@ function bootstrap() {
       persist();
       resetTaskForm();
       renderAll();
+      showToast("保存成功");
     });
 
     // project submit
@@ -196,6 +198,7 @@ function bootstrap() {
       ui.projectFormLegend.textContent = "新增工程";
       resetProjectDraft();
       renderAll();
+      showToast("保存成功");
     });
 
     els.projectSelect.addEventListener("change", () => populateStepSelect(els.projectSelect.value));
@@ -712,6 +715,13 @@ function bootstrap() {
     document.querySelectorAll(".task-bar.dragging").forEach((b) => b.classList.remove("dragging"));
     document.querySelectorAll(".task-chip.dragging").forEach((c) => c.classList.remove("dragging"));
     document.querySelectorAll(".task-chip.preview").forEach((c) => c.classList.remove("preview"));
+  }
+
+  function showToast(message) {
+    if (!els.toast) return;
+    els.toast.textContent = message;
+    els.toast.classList.add("show");
+    setTimeout(() => els.toast.classList.remove("show"), 1800);
   }
 
   function onChipDragStart(e) {
