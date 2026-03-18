@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工程日历</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">工程可视化</div>
+      <h1>工程日历</h1>
+    </div>
+    <div class="header-actions">
+      <label class="pill">
+        主题
+        <select id="theme-select">
+          <option value="black">黑色</option>
+          <option value="white">白色</option>
+        </select>
+      </label>
+      <div class="pill">本地数据 · 自动保存</div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-target="calendar-view">日期视图</button>
+    <button class="tab" data-target="projects-view">工程视图</button>
+  </nav>
+
+  <main>
+    <section id="calendar-view" class="view active">
+      <div class="toolbar">
+        <div class="month-nav">
+          <button id="prev-month" aria-label="上个月">←</button>
+          <div id="month-label" class="month-label"></div>
+          <button id="next-month" aria-label="下个月">→</button>
+        </div>
+        <div id="legend" class="legend"></div>
+      </div>
+
+      <div id="calendar-grid" class="calendar-grid"></div>
+
+      <div class="timeline-wrapper">
+        <div class="timeline-header" id="timeline-header"></div>
+        <div id="timeline-grid" class="timeline-grid"></div>
+      </div>
+
+      <details class="panel">
+        <summary>添加 / 编辑日期条</summary>
+        <form id="task-form" class="form-grid">
+          <input type="hidden" name="taskId" id="task-id">
+          <label>标题
+            <input required name="title" placeholder="如：方案评审">
+          </label>
+          <label>颜色
+            <input required name="color" type="color" value="#00bfa6">
+          </label>
+          <label>开始日期
+            <input required name="start" type="date">
+          </label>
+          <label>结束日期
+            <input required name="end" type="date">
+          </label>
+          <label>所属工程
+            <select name="projectId" id="project-select"></select>
+          </label>
+          <label>工程步骤
+            <select name="stepId" id="step-select">
+              <option value="">（先选工程）</option>
+            </select>
+          </label>
+          <label>备注
+            <input name="note" placeholder="可选">
+          </label>
+          <div class="form-actions">
+            <button type="submit">保存日期条</button>
+            <button type="button" class="btn-ghost" id="delete-task">删除当前</button>
+          </div>
+        </form>
+      </details>
+    </section>
+
+    <section id="projects-view" class="view">
+      <div class="panel">
+        <h2>工程列表</h2>
+        <div id="projects-list" class="project-list"></div>
+      </div>
+
+      <details class="panel">
+        <summary>新增工程</summary>
+        <form id="project-form" class="form-grid">
+          <input type="hidden" name="projectId" id="project-id">
+          <label>工程名称
+            <input required name="name" placeholder="如：移动端重构">
+          </label>
+          <label>简介
+            <input name="description" placeholder="一句话说明">
+          </label>
+          <label>步骤
+            <div class="step-list" id="step-list"></div>
+            <button type="button" class="btn-ghost" id="add-step">＋ 添加步骤</button>
+          </label>
+          <button type="submit">创建工程</button>
+        </form>
+      </details>
+    </section>
+  </main>
+
+  <template id="task-chip-template">
+    <div class="task-chip"><span class="dot"></span><span class="text"></span></div>
+  </template>
+
+  <footer class="panel footer">
+    <div class="footer-left">
+      <strong>数据导入 / 导出</strong>
+      <span class="muted">文件格式：JSON，含工程、步骤、日期条与主题</span>
+    </div>
+    <div class="footer-actions">
+      <input type="file" id="import-file" accept="application/json" hidden>
+      <button type="button" class="btn-ghost" id="import-btn">导入文件</button>
+      <button type="button" id="export-btn">导出为 JSON</button>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

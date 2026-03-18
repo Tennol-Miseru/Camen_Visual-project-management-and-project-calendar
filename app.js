@@ -1,0 +1,711 @@
+﻿document.addEventListener("DOMContentLoaded", bootstrap);
+
+function bootstrap() {
+  // ------------- storage helpers -------------
+  const storage = {
+    load(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch {
+        return fallback;
+      }
+    },
+    save(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+  };
+
+  const uuid = () =>
+    (crypto?.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+
+    const seedProjects = [
+    {
+      id: "proj-a",
+      name: "Mobile Revamp",
+      description: "Rebuild navigation and login",
+      steps: [
+        { id: "step-a1", title: "Requirements" },
+        { id: "step-a2", title: "Visual Design" },
+        { id: "step-a3", title: "Dev & QA" },
+        { id: "step-a4", title: "Launch Review" }
+      ]
+    },
+    {
+      id: "proj-b",
+      name: "Data Dashboard",
+      description: "Realtime KPIs for ops",
+      steps: [
+        { id: "step-b1", title: "API Survey" },
+        { id: "step-b2", title: "Prototype" },
+        { id: "step-b3", title: "Tracking Verify" }
+      ]
+    }
+  ];
+
+  const seedTasks = [
+    {
+      id: "task-1",
+      title: "User Interviews",
+      start: dateStrOffset(0),
+      end: dateStrOffset(2),
+      color: "#00bfa6",
+      projectId: "proj-a",
+      stepId: "step-a1",
+      note: ""
+    },
+    {
+      id: "task-2",
+      title: "Design Signoff",
+      start: dateStrOffset(3),
+      end: dateStrOffset(6),
+      color: "#f59e0b",
+      projectId: "proj-a",
+      stepId: "step-a2",
+      note: ""
+    },
+    {
+      id: "task-3",
+      title: "Tracking QA",
+      start: dateStrOffset(5),
+      end: dateStrOffset(9),
+      color: "#3b82f6",
+      projectId: "proj-b",
+      stepId: "step-b3",
+      note: ""
+    }
+  ];
+
+  const state = {
+    tasks: storage.load("calendar_tasks", seedTasks),
+    projects: storage.load("calendar_projects", seedProjects),
+    viewDate: new Date(),
+    filterStepId: null
+  };
+
+  const els = {
+    tabs: document.querySelectorAll(".tab"),
+    views: document.querySelectorAll(".view"),
+    monthLabel: document.getElementById("month-label"),
+    calendarGrid: document.getElementById("calendar-grid"),
+    timelineGrid: document.getElementById("timeline-grid"),
+    timelineHeader: document.getElementById("timeline-header"),
+    legend: document.getElementById("legend"),
+    taskForm: document.getElementById("task-form"),
+    taskIdInput: document.getElementById("task-id"),
+    deleteTaskBtn: document.getElementById("delete-task"),
+    projectForm: document.getElementById("project-form"),
+    projectSelect: document.getElementById("project-select"),
+    stepSelect: document.getElementById("step-select"),
+    projectsList: document.getElementById("projects-list"),
+    stepList: document.getElementById("step-list"),
+    addStepBtn: document.getElementById("add-step"),
+    themeSelect: document.getElementById("theme-select"),
+    importBtn: document.getElementById("import-btn"),
+    exportBtn: document.getElementById("export-btn"),
+    importFile: document.getElementById("import-file")
+  };
+
+  const ui = {
+    projectFormLegend: document.querySelector("#projects-view summary"),
+    projectIdInput: document.getElementById("project-id")
+  };
+
+  const THEMES = ["black", "white"];
+  let stepDraft = [];
+  let editingTaskId = null;
+
+  bindTabs();
+  bindNav();
+  bindForms();
+  resetTaskForm();
+  initTheme();
+  renderStepDraft();
+  bindImportExport();
+  renderAll();
+
+  // ---------- bindings ----------
+  function bindTabs() {
+    els.tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        els.tabs.forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        const target = tab.dataset.target;
+        els.views.forEach((v) => v.classList.toggle("active", v.id === target));
+      });
+    });
+  }
+
+  function bindNav() {
+    document.getElementById("prev-month").addEventListener("click", () => changeMonth(-1));
+    document.getElementById("next-month").addEventListener("click", () => changeMonth(1));
+  }
+
+  function bindForms() {
+    // 任务提交
+    els.taskForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(els.taskForm));
+      if (!data.title.trim()) return;
+      const start = parseDate(data.start);
+      const end = parseDate(data.end);
+      if (start > end) {
+        alert("结束日期必须不早于开始日期");
+        return;
+      }
+
+      if (editingTaskId) {
+        const task = state.tasks.find((t) => t.id === editingTaskId);
+        if (task) {
+          task.title = data.title.trim();
+          task.start = data.start;
+          task.end = data.end;
+          task.color = data.color || "#00bfa6";
+          task.projectId = data.projectId || "";
+          task.stepId = data.stepId || "";
+          task.note = data.note || "";
+        }
+      } else {
+        state.tasks.push({
+          id: uuid(),
+          title: data.title.trim(),
+          start: data.start,
+          end: data.end,
+          color: data.color || "#00bfa6",
+          projectId: data.projectId || "",
+          stepId: data.stepId || "",
+          note: data.note || ""
+        });
+      }
+      persist();
+      resetTaskForm();
+      renderAll();
+    });
+
+    // 工程提交
+    els.projectForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(els.projectForm));
+      const existing = state.projects.find((p) => p.id === data.projectId);
+      const steps = normalizeSteps(stepDraft, existing?.steps || []);
+
+      if (existing) {
+        existing.name = data.name.trim();
+        existing.description = data.description || "";
+        existing.steps = steps;
+        if (state.filterStepId && !steps.some((s) => s.id === state.filterStepId)) {
+          state.filterStepId = null;
+        }
+      } else {
+        state.projects.push({
+          id: `proj-${uuid()}`,
+          name: data.name.trim(),
+          description: data.description || "",
+          steps
+        });
+      }
+      persist();
+      ui.projectFormLegend.textContent = "新增工程";
+      resetProjectDraft();
+      populateProjectSelect();
+      renderProjects();
+      renderLegend();
+    });
+
+    els.projectSelect.addEventListener("change", () => populateStepSelect(els.projectSelect.value));
+    els.addStepBtn.addEventListener("click", () => {
+      stepDraft.push({ id: `step-${uuid()}`, title: `步骤 ${stepDraft.length + 1}` });
+      renderStepDraft();
+    });
+
+    if (els.deleteTaskBtn) {
+      els.deleteTaskBtn.addEventListener("click", () => {
+        if (!editingTaskId) {
+          alert("请先选择要删除的日期条");
+          return;
+        }
+        const before = state.tasks.length;
+        state.tasks = state.tasks.filter((t) => t.id !== editingTaskId);
+        persist();
+        resetTaskForm();
+        renderAll();
+        console.log(`删除日期条，数量变化：${before} -> ${state.tasks.length}`);
+      });
+    }
+  }
+
+  function bindImportExport() {
+    if (els.exportBtn) {
+      els.exportBtn.addEventListener("click", () => {
+        const payload = {
+          projects: state.projects,
+          tasks: state.tasks,
+          theme: document.body.dataset.theme || "black",
+          exportedAt: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `engineering-calendar-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    if (els.importBtn && els.importFile) {
+      els.importBtn.addEventListener("click", () => els.importFile.click());
+      els.importFile.addEventListener("change", async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          const projects = Array.isArray(data.projects) ? data.projects : [];
+          const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+          if (projects.length === 0 && tasks.length === 0) throw new Error("文件中没有可导入的数据");
+          state.projects = projects;
+          state.tasks = tasks;
+          const theme = THEMES.includes(data.theme) ? data.theme : "black";
+          applyTheme(theme);
+          storage.save("calendar_theme", theme);
+          persist();
+          populateProjectSelect();
+          renderAll();
+          alert("导入成功");
+        } catch (err) {
+          console.error(err);
+          alert("导入失败，请确认文件为本工具导出的 JSON。");
+        } finally {
+          e.target.value = "";
+        }
+      });
+    }
+  }
+
+  // ---------- render ----------
+  function renderAll() {
+    populateProjectSelect();
+    populateStepSelect(els.projectSelect.value);
+    renderLegend();
+    renderCalendar();
+    renderTimeline();
+    renderProjects();
+  }
+
+  function renderLegend() {
+    els.legend.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+    const items = state.projects.map((p) => {
+      const task = state.tasks.find((t) => t.projectId === p.id);
+      return { label: p.name, color: task ? task.color : "#94a3b8" };
+    });
+    if (items.length === 0) {
+      const span = document.createElement("span");
+      span.textContent = "暂无工程";
+      span.style.color = "var(--muted)";
+      fragment.appendChild(span);
+    } else {
+      items.forEach((item) => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        dot.style.background = item.color;
+        chip.appendChild(dot);
+        chip.appendChild(document.createTextNode(item.label));
+        fragment.appendChild(chip);
+      });
+    }
+    if (state.filterStepId) {
+      const filterChip = document.createElement("span");
+      filterChip.className = "chip";
+      filterChip.textContent = "筛选：仅当前步骤";
+      filterChip.style.background = "rgba(255,255,255,0.12)";
+      filterChip.style.cursor = "pointer";
+      filterChip.addEventListener("click", () => {
+        state.filterStepId = null;
+        renderAll();
+      });
+      fragment.appendChild(filterChip);
+    }
+    els.legend.appendChild(fragment);
+  }
+
+  function renderCalendar() {
+    const year = state.viewDate.getFullYear();
+    const month = state.viewDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startOffset = firstDay.getDay();
+    const todayStr = toDateStrLocal(new Date());
+    els.monthLabel.textContent = `${year}年 ${month + 1}月`;
+    els.calendarGrid.innerHTML = "";
+
+    const weekdayNames = ["日", "一", "二", "三", "四", "五", "六"];
+    weekdayNames.forEach((w) => {
+      const label = document.createElement("div");
+      label.textContent = w;
+      label.style.textAlign = "center";
+      label.style.color = "var(--muted)";
+      label.style.padding = "4px 0";
+      els.calendarGrid.appendChild(label);
+    });
+
+    for (let i = 0; i < startOffset; i++) {
+      const empty = document.createElement("div");
+      empty.className = "day";
+      empty.style.opacity = 0.3;
+      els.calendarGrid.appendChild(empty);
+    }
+
+    const tasks = visibleTasks();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = toDateStrLocal(new Date(year, month, day));
+      const cell = document.createElement("div");
+      cell.className = "day";
+      if (dateStr === todayStr) cell.classList.add("today");
+
+      const header = document.createElement("div");
+      header.className = "date";
+      header.innerHTML = `<strong>${day}</strong><span>${weekdayNames[new Date(year, month, day).getDay()]}</span>`;
+
+      const chipsBox = document.createElement("div");
+      chipsBox.className = "chips";
+
+      const dayTasks = tasks.filter((t) => dateStr >= t.start && dateStr <= t.end);
+      dayTasks.forEach((t) => chipsBox.appendChild(makeTaskChip(t)));
+
+      cell.appendChild(header);
+      cell.appendChild(chipsBox);
+      els.calendarGrid.appendChild(cell);
+    }
+  }
+
+  function renderTimeline() {
+    const year = state.viewDate.getFullYear();
+    const month = state.viewDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    els.timelineHeader.style.gridTemplateColumns = `repeat(${daysInMonth}, minmax(24px, 1fr))`;
+    els.timelineHeader.innerHTML = "";
+    for (let i = 1; i <= daysInMonth; i++) {
+      const cell = document.createElement("div");
+      cell.textContent = i;
+      cell.style.textAlign = "center";
+      cell.style.padding = "4px 0";
+      cell.style.borderBottom = "1px solid rgba(255,255,255,0.06)";
+      els.timelineHeader.appendChild(cell);
+    }
+
+    const tasks = visibleTasks().filter((t) => overlapsMonth(t, year, month));
+    els.timelineGrid.innerHTML = "";
+    if (tasks.length === 0) {
+      els.timelineGrid.textContent = "本月暂无日期条。";
+      return;
+    }
+
+    tasks.forEach((task) => {
+      const row = document.createElement("div");
+      row.className = "timeline-row";
+      row.style.gridTemplateColumns = `repeat(${daysInMonth}, minmax(24px, 1fr))`;
+
+      const bar = document.createElement("div");
+      bar.className = "task-bar";
+      bar.style.background = task.color;
+      bar.style.gridColumn = `${clampToMonth(task.start, year, month)} / ${clampToMonth(task.end, year, month) + 1}`;
+      bar.textContent = task.title;
+      bar.title = `${task.start} ~ ${task.end}`;
+      bar.addEventListener("click", () => startEditTask(task));
+      row.appendChild(bar);
+      els.timelineGrid.appendChild(row);
+    });
+  }
+
+  function renderProjects() {
+    els.projectsList.innerHTML = "";
+    if (state.projects.length === 0) {
+      els.projectsList.textContent = "暂无工程，先添加一个吧。";
+      return;
+    }
+
+    state.projects.forEach((p) => {
+      const card = document.createElement("div");
+      card.className = "project-card";
+      const head = document.createElement("div");
+      head.className = "card-head";
+      const title = document.createElement("h3");
+      title.textContent = p.name;
+      const actions = document.createElement("div");
+      actions.style.display = "flex";
+      actions.style.gap = "6px";
+      const editBtn = document.createElement("button");
+      editBtn.className = "btn-ghost";
+      editBtn.textContent = "编辑";
+      editBtn.addEventListener("click", () => startEditProject(p));
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn-ghost";
+      delBtn.textContent = "删除";
+      delBtn.addEventListener("click", () => deleteProject(p.id));
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      head.appendChild(title);
+      head.appendChild(actions);
+
+      const desc = document.createElement("div");
+      desc.textContent = p.description || "（无简介）";
+      title.style.cursor = "pointer";
+      desc.style.cursor = "pointer";
+      title.addEventListener("click", () => startEditProject(p));
+      desc.addEventListener("click", () => startEditProject(p));
+
+      const stepsBox = document.createElement("div");
+      stepsBox.className = "project-steps";
+      p.steps.forEach((s, idx) => {
+        const chip = document.createElement("div");
+        chip.className = "step-chip";
+        chip.dataset.stepId = s.id;
+        chip.innerHTML = `<span class="badge">${idx + 1}</span> ${s.title}`;
+        chip.addEventListener("click", () => {
+          state.filterStepId = s.id;
+          renderAll();
+        });
+        chip.addEventListener("dblclick", (ev) => {
+          ev.stopPropagation();
+          startEditProject(p);
+        });
+        stepsBox.appendChild(chip);
+      });
+
+      const related = document.createElement("div");
+      related.style.color = "var(--muted)";
+      const taskCount = state.tasks.filter((t) => t.projectId === p.id).length;
+      related.textContent = `关联日期条：${taskCount} 条`;
+
+      card.appendChild(head);
+      card.appendChild(desc);
+      card.appendChild(stepsBox);
+      card.appendChild(related);
+      els.projectsList.appendChild(card);
+    });
+  }
+
+  // ---------- helpers ----------
+  function visibleTasks() {
+    if (!state.filterStepId) return state.tasks;
+    return state.tasks.filter((t) => t.stepId === state.filterStepId);
+  }
+
+  function makeTaskChip(task) {
+    const tmpl = document.getElementById("task-chip-template");
+    const node = tmpl.content.firstElementChild.cloneNode(true);
+    node.querySelector(".dot").style.background = task.color;
+    node.querySelector(".text").textContent = task.title;
+    node.title = `${task.start} ~ ${task.end}`;
+    node.addEventListener("click", () => startEditTask(task));
+    return node;
+  }
+
+  function overlapsMonth(task, year, month) {
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    const start = parseDate(task.start);
+    const end = parseDate(task.end);
+    return start <= monthEnd && end >= monthStart;
+  }
+
+  function clampToMonth(dateStr, year, month) {
+    const date = parseDate(dateStr);
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    if (date < monthStart) return 1;
+    if (date > monthEnd) return monthEnd.getDate();
+    return date.getDate();
+  }
+
+  function dateStrOffset(offsetDays) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return toDateStrLocal(d);
+  }
+
+  function toDateStrLocal(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function parseDate(str) {
+    const [y, m, d] = str.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function changeMonth(delta) {
+    const d = new Date(state.viewDate);
+    d.setMonth(d.getMonth() + delta);
+    state.viewDate = d;
+    renderCalendar();
+    renderTimeline();
+  }
+
+  function populateProjectSelect() {
+    els.projectSelect.innerHTML = `<option value=\"\">（可选）</option>`;
+    state.projects.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.name;
+      els.projectSelect.appendChild(opt);
+    });
+  }
+
+  function populateStepSelect(projectId) {
+    els.stepSelect.innerHTML = "";
+    if (!projectId) {
+      els.stepSelect.innerHTML = `<option value=\"\">（先选工程）</option>`;
+      return;
+    }
+    const project = state.projects.find((p) => p.id === projectId);
+    if (!project) return;
+    els.stepSelect.innerHTML = `<option value=\"\">（可选）</option>`;
+    project.steps.forEach((s) => {
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.title;
+      els.stepSelect.appendChild(opt);
+    });
+  }
+
+  function startEditTask(task) {
+    editingTaskId = task.id;
+    if (els.taskIdInput) els.taskIdInput.value = task.id;
+    els.taskForm.title.value = task.title;
+    els.taskForm.color.value = task.color;
+    els.taskForm.start.value = task.start;
+    els.taskForm.end.value = task.end;
+    els.taskForm.note.value = task.note || "";
+    els.projectSelect.value = task.projectId || "";
+    populateStepSelect(task.projectId || "");
+    els.stepSelect.value = task.stepId || "";
+    const submitBtn = els.taskForm?.querySelector('button[type=\"submit\"]');
+    if (submitBtn) submitBtn.textContent = "更新日期条";
+    if (els.deleteTaskBtn) els.deleteTaskBtn.disabled = false;
+    document.querySelector('[data-target=\"calendar-view\"]').click();
+  }
+
+  function startEditProject(project) {
+    ui.projectIdInput.value = project.id;
+    els.projectForm.name.value = project.name;
+    els.projectForm.description.value = project.description || "";
+    stepDraft = project.steps.map((s) => ({ ...s }));
+    renderStepDraft();
+    ui.projectFormLegend.textContent = "编辑工程";
+    document.querySelector('[data-target=\"projects-view\"]').click();
+  }
+
+  function deleteProject(projectId) {
+    if (!confirm("删除工程会同时移除关联的日期条，确定吗？")) return;
+    const taskBefore = state.tasks.length;
+    state.projects = state.projects.filter((p) => p.id !== projectId);
+    state.tasks = state.tasks.filter((t) => t.projectId !== projectId);
+    state.filterStepId = null;
+    persist();
+    populateProjectSelect();
+    renderAll();
+    console.log(`删除工程 ${projectId}，移除任务 ${taskBefore - state.tasks.length} 条`);
+  }
+
+  function normalizeSteps(draft, existingSteps) {
+    const clean = draft
+      .map((s) => ({ ...s, title: (s.title || "").trim() }))
+      .filter((s) => s.title.length > 0)
+      .map((s, idx) => ({
+        id: existingSteps[idx]?.id || s.id || `step-${uuid()}`,
+        title: s.title,
+        order: idx + 1
+      }));
+
+    const validIds = new Set(clean.map((s) => s.id));
+    state.tasks.forEach((t) => {
+      if (t.stepId && !validIds.has(t.stepId)) t.stepId = "";
+    });
+    return clean;
+  }
+
+  function renderStepDraft() {
+    els.stepList.innerHTML = "";
+    if (stepDraft.length === 0) {
+      const hint = document.createElement("div");
+      hint.style.color = "var(--muted)";
+      hint.textContent = "暂无步骤，点击下方“＋ 添加步骤”";
+      els.stepList.appendChild(hint);
+      return;
+    }
+
+    stepDraft.forEach((step, idx) => {
+      const row = document.createElement("div");
+      row.className = "step-row";
+
+      const input = document.createElement("input");
+      input.value = step.title;
+      input.placeholder = `步骤 ${idx + 1}`;
+      input.addEventListener("input", (e) => {
+        stepDraft[idx].title = e.target.value;
+      });
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "btn-ghost";
+      remove.textContent = "删除";
+      remove.addEventListener("click", () => {
+        stepDraft.splice(idx, 1);
+        renderStepDraft();
+      });
+
+      row.appendChild(input);
+      row.appendChild(remove);
+      els.stepList.appendChild(row);
+    });
+  }
+
+  function resetTaskForm() {
+    editingTaskId = null;
+    if (els.taskIdInput) els.taskIdInput.value = "";
+    if (els.taskForm) els.taskForm.reset();
+    const submitBtn = els.taskForm?.querySelector('button[type=\"submit\"]');
+    if (submitBtn) submitBtn.textContent = "保存日期条";
+    if (els.deleteTaskBtn) els.deleteTaskBtn.disabled = true;
+  }
+
+  function resetProjectDraft() {
+    ui.projectIdInput.value = "";
+    stepDraft = [];
+    renderStepDraft();
+    ui.projectFormLegend.textContent = "新增工程";
+  }
+
+  function persist() {
+    storage.save("calendar_tasks", state.tasks);
+    storage.save("calendar_projects", state.projects);
+  }
+
+  function initTheme() {
+    let saved = storage.load("calendar_theme", "black");
+    if (!THEMES.includes(saved)) saved = "black";
+    applyTheme(saved);
+    if (els.themeSelect) {
+      els.themeSelect.value = saved;
+      els.themeSelect.addEventListener("change", () => {
+        const next = THEMES.includes(els.themeSelect.value) ? els.themeSelect.value : "black";
+        applyTheme(next);
+        storage.save("calendar_theme", next);
+      });
+    }
+  }
+
+  function applyTheme(name) {
+    document.body.dataset.theme = name;
+  }
+} // end bootstrap
+
+
