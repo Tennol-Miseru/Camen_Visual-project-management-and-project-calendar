@@ -96,6 +96,8 @@ main { display: grid; gap: 16px; }
 .task-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--chip-bg); padding: 6px 8px; border-radius: 10px; font-size: 13px; color: var(--text); }
 .task-chip .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 .task-chip.done { color: #9ca3af; text-decoration: line-through; }
+.task-chip.dragging { opacity: 0.6; outline: 1px dashed var(--accent); }
+.task-chip.preview { outline: 1px dashed var(--accent); background: rgba(0,191,166,0.08); }
 
 .timeline-wrapper { background: var(--panel); border: 1px solid var(--grid-line); border-radius: 12px; padding: 12px; margin-top: 10px; overflow-x: auto; }
 .timeline-header { display: grid; gap: 2px; margin-bottom: 8px; color: var(--muted); font-size: 12px; }

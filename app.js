@@ -654,6 +654,12 @@ function bootstrap() {
     const projLabel = projectName || "无所属";
     node.title = `${projLabel} | ${task.start} ~ ${task.end}`;
     node.setAttribute("data-project", projLabel);
+    node.draggable = true;
+    node.dataset.taskId = task.id;
+    node.addEventListener("dragstart", onChipDragStart);
+    node.addEventListener("dragover", onChipDragOver);
+    node.addEventListener("dragleave", onChipDragLeave);
+    node.addEventListener("drop", onChipDrop);
     node.addEventListener("click", () => startEditTask(task));
     return node;
   }
@@ -704,6 +710,40 @@ function bootstrap() {
   function clearDragState() {
     document.querySelectorAll(".timeline-row.preview").forEach((r) => r.classList.remove("preview"));
     document.querySelectorAll(".task-bar.dragging").forEach((b) => b.classList.remove("dragging"));
+    document.querySelectorAll(".task-chip.dragging").forEach((c) => c.classList.remove("dragging"));
+    document.querySelectorAll(".task-chip.preview").forEach((c) => c.classList.remove("preview"));
+  }
+
+  function onChipDragStart(e) {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", e.currentTarget.dataset.taskId);
+    e.currentTarget.classList.add("dragging");
+  }
+  function onChipDragOver(e) {
+    e.preventDefault();
+    const chip = e.currentTarget;
+    chip.classList.add("preview");
+  }
+  function onChipDragLeave(e) {
+    e.currentTarget.classList.remove("preview");
+  }
+  function onChipDrop(e) {
+    e.preventDefault();
+    const fromId = e.dataTransfer.getData("text/plain");
+    const toId = e.currentTarget.dataset.taskId;
+    if (!fromId || !toId || fromId === toId) return;
+    const list = visibleTasks().filter(isValidTask);
+    const fromIdx = list.findIndex((t) => t.id === fromId);
+    const toIdx = list.findIndex((t) => t.id === toId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    list.splice(toIdx, 0, list.splice(fromIdx, 1)[0]);
+    list.forEach((t, i) => {
+      const real = state.tasks.find((x) => x.id === t.id);
+      if (real) real.order = i;
+    });
+    clearDragState();
+    persist();
+    renderAll();
   }
 
   function dateStrOffset(offsetDays) {
