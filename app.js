@@ -441,6 +441,13 @@ function bootstrap() {
       const projectName = getProjectName(task.projectId);
       bar.textContent = task.title;
       bar.title = projectName ? `${projectName} | ${task.start} ~ ${task.end}` : `${task.start} ~ ${task.end}`;
+      if (bar.classList.contains("done")) {
+        bar.style.color = "#e5e7eb";
+        bar.style.textDecoration = "line-through";
+      } else {
+        bar.style.color = "#0b1324";
+        bar.style.textDecoration = "none";
+      }
       bar.addEventListener("click", () => startEditTask(task));
       row.appendChild(bar);
       els.timelineGrid.appendChild(row);
