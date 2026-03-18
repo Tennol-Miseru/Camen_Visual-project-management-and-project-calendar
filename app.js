@@ -1,7 +1,8 @@
-﻿document.addEventListener("DOMContentLoaded", bootstrap);
+﻿// rebuilt clean version
+
+document.addEventListener("DOMContentLoaded", bootstrap);
 
 function bootstrap() {
-  // ------------- storage helpers -------------
   const storage = {
     load(key, fallback) {
       try {
@@ -16,65 +17,10 @@ function bootstrap() {
     }
   };
 
-  const uuid = () =>
-    (crypto?.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const uuid = () => (crypto?.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`);
 
-    const seedProjects = [
-    {
-      id: "proj-a",
-      name: "Mobile Revamp",
-      description: "Rebuild navigation and login",
-      steps: [
-        { id: "step-a1", title: "Requirements" },
-        { id: "step-a2", title: "Visual Design" },
-        { id: "step-a3", title: "Dev & QA" },
-        { id: "step-a4", title: "Launch Review" }
-      ]
-    },
-    {
-      id: "proj-b",
-      name: "Data Dashboard",
-      description: "Realtime KPIs for ops",
-      steps: [
-        { id: "step-b1", title: "API Survey" },
-        { id: "step-b2", title: "Prototype" },
-        { id: "step-b3", title: "Tracking Verify" }
-      ]
-    }
-  ];
-
-  const seedTasks = [
-    {
-      id: "task-1",
-      title: "User Interviews",
-      start: dateStrOffset(0),
-      end: dateStrOffset(2),
-      color: "#00bfa6",
-      projectId: "proj-a",
-      stepId: "step-a1",
-      note: ""
-    },
-    {
-      id: "task-2",
-      title: "Design Signoff",
-      start: dateStrOffset(3),
-      end: dateStrOffset(6),
-      color: "#f59e0b",
-      projectId: "proj-a",
-      stepId: "step-a2",
-      note: ""
-    },
-    {
-      id: "task-3",
-      title: "Tracking QA",
-      start: dateStrOffset(5),
-      end: dateStrOffset(9),
-      color: "#3b82f6",
-      projectId: "proj-b",
-      stepId: "step-b3",
-      note: ""
-    }
-  ];
+  const seedProjects = [];
+  const seedTasks = [];
 
   const state = {
     tasks: storage.load("calendar_tasks", seedTasks),
@@ -124,7 +70,6 @@ function bootstrap() {
   bindImportExport();
   renderAll();
 
-  // ---------- bindings ----------
   function bindTabs() {
     els.tabs.forEach((tab) => {
       tab.addEventListener("click", () => {
@@ -142,7 +87,7 @@ function bootstrap() {
   }
 
   function bindForms() {
-    // 任务提交
+    // task submit
     els.taskForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const data = Object.fromEntries(new FormData(els.taskForm));
@@ -150,7 +95,7 @@ function bootstrap() {
       const start = parseDate(data.start);
       const end = parseDate(data.end);
       if (start > end) {
-        alert("结束日期必须不早于开始日期");
+        alert("End date must not be earlier than start date");
         return;
       }
 
@@ -182,7 +127,7 @@ function bootstrap() {
       renderAll();
     });
 
-    // 工程提交
+    // project submit
     els.projectForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const data = Object.fromEntries(new FormData(els.projectForm));
@@ -283,7 +228,6 @@ function bootstrap() {
     }
   }
 
-  // ---------- render ----------
   function renderAll() {
     populateProjectSelect();
     populateStepSelect(els.projectSelect.value);
@@ -490,7 +434,6 @@ function bootstrap() {
     });
   }
 
-  // ---------- helpers ----------
   function visibleTasks() {
     if (!state.filterStepId) return state.tasks;
     return state.tasks.filter((t) => t.stepId === state.filterStepId);
@@ -550,7 +493,7 @@ function bootstrap() {
   }
 
   function populateProjectSelect() {
-    els.projectSelect.innerHTML = `<option value=\"\">（可选）</option>`;
+    els.projectSelect.innerHTML = `<option value="">（可选）</option>`;
     state.projects.forEach((p) => {
       const opt = document.createElement("option");
       opt.value = p.id;
@@ -562,12 +505,12 @@ function bootstrap() {
   function populateStepSelect(projectId) {
     els.stepSelect.innerHTML = "";
     if (!projectId) {
-      els.stepSelect.innerHTML = `<option value=\"\">（先选工程）</option>`;
+      els.stepSelect.innerHTML = `<option value="">（先选工程）</option>`;
       return;
     }
     const project = state.projects.find((p) => p.id === projectId);
     if (!project) return;
-    els.stepSelect.innerHTML = `<option value=\"\">（可选）</option>`;
+    els.stepSelect.innerHTML = `<option value="">（可选）</option>`;
     project.steps.forEach((s) => {
       const opt = document.createElement("option");
       opt.value = s.id;
@@ -587,10 +530,10 @@ function bootstrap() {
     els.projectSelect.value = task.projectId || "";
     populateStepSelect(task.projectId || "");
     els.stepSelect.value = task.stepId || "";
-    const submitBtn = els.taskForm?.querySelector('button[type=\"submit\"]');
+    const submitBtn = els.taskForm?.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.textContent = "更新日期条";
     if (els.deleteTaskBtn) els.deleteTaskBtn.disabled = false;
-    document.querySelector('[data-target=\"calendar-view\"]').click();
+    document.querySelector('[data-target="calendar-view"]').click();
   }
 
   function startEditProject(project) {
@@ -600,7 +543,7 @@ function bootstrap() {
     stepDraft = project.steps.map((s) => ({ ...s }));
     renderStepDraft();
     ui.projectFormLegend.textContent = "编辑工程";
-    document.querySelector('[data-target=\"projects-view\"]').click();
+    document.querySelector('[data-target="projects-view"]').click();
   }
 
   function deleteProject(projectId) {
@@ -672,7 +615,7 @@ function bootstrap() {
     editingTaskId = null;
     if (els.taskIdInput) els.taskIdInput.value = "";
     if (els.taskForm) els.taskForm.reset();
-    const submitBtn = els.taskForm?.querySelector('button[type=\"submit\"]');
+    const submitBtn = els.taskForm?.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.textContent = "保存日期条";
     if (els.deleteTaskBtn) els.deleteTaskBtn.disabled = true;
   }
@@ -706,6 +649,4 @@ function bootstrap() {
   function applyTheme(name) {
     document.body.dataset.theme = name;
   }
-} // end bootstrap
-
-
+}
