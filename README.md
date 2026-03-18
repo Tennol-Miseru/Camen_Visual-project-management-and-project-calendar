@@ -1,4 +1,4 @@
-# Camen · 工程日历 / Engineering Calendar
+# Camen · 工程日历 / Visual-project-management-and-project-calendar
 
 一个工程日历小工具，核心是可视化的日期事项条与项目工序页，并支持导入/导出数据实现跨端同步。  
 A small engineering calendar tool with visual timeline bars for date-based tasks and dedicated pages for project workflows. It supports data import/export for cross-device sync.
