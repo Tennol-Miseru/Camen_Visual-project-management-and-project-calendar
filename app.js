@@ -92,6 +92,7 @@ function bootstrap() {
   bindDualView();
   bindTimelineZoom();
   bindNoEnd();
+  document.addEventListener("dragend", clearDragState);
   resetTaskForm();
   initTheme();
   renderStepDraft();
@@ -700,6 +701,11 @@ function bootstrap() {
     return lanes;
   }
 
+  function clearDragState() {
+    document.querySelectorAll(".timeline-row.preview").forEach((r) => r.classList.remove("preview"));
+    document.querySelectorAll(".task-bar.dragging").forEach((b) => b.classList.remove("dragging"));
+  }
+
   function dateStrOffset(offsetDays) {
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
@@ -943,8 +949,7 @@ function bootstrap() {
       const real = state.tasks.find((x) => x.id === t.id);
       if (real) real.order = i;
     });
-    document.querySelectorAll(".timeline-row.preview").forEach((r) => r.classList.remove("preview"));
-    document.querySelectorAll(".task-bar.dragging").forEach((b) => b.classList.remove("dragging"));
+    clearDragState();
     persist();
     renderAll();
   }
