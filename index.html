@@ -58,6 +58,12 @@
 
       <div class="timeline-wrapper">
         <div class="timeline-header" id="timeline-header"></div>
+        <div class="timeline-controls">
+          <label class="pill">
+            轴缩放
+            <input type="range" id="timeline-zoom" min="0.6" max="2" step="0.1" value="1" title="调整时间轴缩放">
+          </label>
+        </div>
         <div id="timeline-grid" class="timeline-grid"></div>
       </div>
 
@@ -90,6 +96,9 @@
           </label>
           <label>备注
             <input name="note" placeholder="可选">
+          </label>
+          <label class="inline">
+            <input type="checkbox" id="task-done" name="done"> 标记完成（无工程/步骤也可勾选）
           </label>
           <div class="form-actions">
             <button type="submit">保存日期条</button>

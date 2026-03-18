@@ -28,7 +28,8 @@ function bootstrap() {
     projects: storage.load("calendar_projects", seedProjects),
     viewDate: new Date(),
     filterProjectId: "",
-    filterStepId: null
+    filterStepId: null,
+    timelineZoom: storage.load("calendar_timeline_zoom", 1)
   };
 
   const els = {
@@ -58,6 +59,7 @@ function bootstrap() {
     dualToggle: document.getElementById("dual-toggle"),
     ratioRange: document.getElementById("ratio-range"),
     ratioPill: document.getElementById("ratio-pill"),
+    timelineZoom: document.getElementById("timeline-zoom"),
     noEnd: document.getElementById("no-end"),
     startDate: document.getElementById("start-date"),
     endDate: document.getElementById("end-date"),
@@ -84,6 +86,7 @@ function bootstrap() {
   bindFilters();
   bindRatio();
   bindDualView();
+  bindTimelineZoom();
   bindNoEnd();
   resetTaskForm();
   initTheme();
@@ -248,6 +251,19 @@ function bootstrap() {
     });
   }
 
+  function bindTimelineZoom() {
+    if (!els.timelineZoom) return;
+    let z = Number(state.timelineZoom) || 1;
+    z = clamp(z, 0.6, 2);
+    els.timelineZoom.value = z;
+    els.timelineZoom.addEventListener("input", () => {
+      const val = clamp(Number(els.timelineZoom.value), 0.6, 2);
+      state.timelineZoom = val;
+      storage.save("calendar_timeline_zoom", val);
+      renderTimeline();
+    });
+  }
+
   function bindNoEnd() {
     if (!els.noEnd || !els.startDate || !els.endDate) return;
     const sync = () => {
@@ -408,8 +424,9 @@ function bootstrap() {
     const year = state.viewDate.getFullYear();
     const month = state.viewDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cellSize = Math.round(24 * clamp(Number(state.timelineZoom) || 1, 0.6, 2));
 
-    els.timelineHeader.style.gridTemplateColumns = `repeat(${daysInMonth}, minmax(24px, 1fr))`;
+    els.timelineHeader.style.gridTemplateColumns = `repeat(${daysInMonth}, minmax(${cellSize}px, 1fr))`;
     els.timelineHeader.innerHTML = "";
     for (let i = 1; i <= daysInMonth; i++) {
       const cell = document.createElement("div");
@@ -422,42 +439,45 @@ function bootstrap() {
 
     const tasks = visibleTasks()
       .filter(isValidTask)
-      .filter((t) => overlapsMonth(t, year, month));
-    tasks.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      .filter((t) => overlapsMonth(t, year, month))
+      .sort((a, b) => parseDate(a.start) - parseDate(b.start) || parseDate(a.end) - parseDate(b.end) || (a.order ?? 0) - (b.order ?? 0));
+
+    const lanes = packTasks(tasks);
     els.timelineGrid.innerHTML = "";
     if (tasks.length === 0) {
       els.timelineGrid.textContent = "本月暂无日期条。";
       return;
     }
 
-    tasks.forEach((task) => {
+    lanes.forEach((lane) => {
       const row = document.createElement("div");
       row.className = "timeline-row";
-      row.style.gridTemplateColumns = `repeat(${daysInMonth}, minmax(24px, 1fr))`;
-      row.draggable = true;
-      row.dataset.taskId = task.id;
-      row.addEventListener("dragstart", onTaskDragStart);
-      row.addEventListener("dragover", onTaskDragOver);
-      row.addEventListener("dragleave", onTaskDragLeave);
-      row.addEventListener("drop", onTaskDrop);
-
-      const bar = document.createElement("div");
-      bar.className = "task-bar";
-      if (isTaskDone(task)) bar.classList.add("done");
-      bar.style.background = task.color;
-      bar.style.gridColumn = `${clampToMonth(task.start, year, month)} / ${clampToMonth(task.end, year, month) + 1}`;
-      const projectName = getProjectName(task.projectId);
-      bar.textContent = task.title;
-      bar.title = projectName ? `${projectName} | ${task.start} ~ ${task.end}` : `${task.start} ~ ${task.end}`;
-      if (bar.classList.contains("done")) {
-        bar.style.color = "#e5e7eb";
-        bar.style.textDecoration = "line-through";
-      } else {
-        bar.style.color = "#0b1324";
-        bar.style.textDecoration = "none";
-      }
-      bar.addEventListener("click", () => startEditTask(task));
-      row.appendChild(bar);
+      row.style.gridTemplateColumns = `repeat(${daysInMonth}, minmax(${cellSize}px, 1fr))`;
+      lane.forEach((task) => {
+        const bar = document.createElement("div");
+        bar.className = "task-bar";
+        bar.draggable = true;
+        bar.dataset.taskId = task.id;
+        if (isTaskDone(task)) bar.classList.add("done");
+        bar.style.background = task.color;
+        bar.style.gridColumn = `${clampToMonth(task.start, year, month)} / ${clampToMonth(task.end, year, month) + 1}`;
+        const projectName = getProjectName(task.projectId);
+        bar.textContent = task.title;
+        bar.title = projectName ? `${projectName} | ${task.start} ~ ${task.end}` : `${task.start} ~ ${task.end}`;
+        if (bar.classList.contains("done")) {
+          bar.style.color = "#e5e7eb";
+          bar.style.textDecoration = "line-through";
+        } else {
+          bar.style.color = "#0b1324";
+          bar.style.textDecoration = "none";
+        }
+        bar.addEventListener("click", () => startEditTask(task));
+        bar.addEventListener("dragstart", onTaskDragStart);
+        bar.addEventListener("dragover", onTaskDragOver);
+        bar.addEventListener("dragleave", onTaskDragLeave);
+        bar.addEventListener("drop", onTaskDrop);
+        row.appendChild(bar);
+      });
       els.timelineGrid.appendChild(row);
     });
   }
@@ -635,6 +655,23 @@ function bootstrap() {
     if (date < monthStart) return 1;
     if (date > monthEnd) return monthEnd.getDate();
     return date.getDate();
+  }
+
+  function packTasks(tasks) {
+    const lanes = [];
+    tasks.forEach((task) => {
+      let placed = false;
+      for (const lane of lanes) {
+        const last = lane[lane.length - 1];
+        if (parseDate(last.end) < parseDate(task.start)) {
+          lane.push(task);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) lanes.push([task]);
+    });
+    return lanes;
   }
 
   function dateStrOffset(offsetDays) {
@@ -859,7 +896,7 @@ function bootstrap() {
     const fromId = e.dataTransfer.getData("text/plain");
     const toId = e.currentTarget.dataset.taskId;
     if (!fromId || !toId || fromId === toId) return;
-    const list = visibleTasks();
+    const list = visibleTasks().filter(isValidTask);
     const fromIdx = list.findIndex((t) => t.id === fromId);
     const toIdx = list.findIndex((t) => t.id === toId);
     if (fromIdx === -1 || toIdx === -1) return;
