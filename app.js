@@ -713,6 +713,8 @@ function bootstrap() {
     renderStepDraft();
     ui.projectFormLegend.textContent = "编辑工程";
     if (els.projectDraft) els.projectDraft.checked = !!project.draft;
+    const formDetails = document.querySelector("#projects-view details");
+    if (formDetails) formDetails.open = true;
     document.querySelector('[data-target="projects-view"]').click();
   }
 

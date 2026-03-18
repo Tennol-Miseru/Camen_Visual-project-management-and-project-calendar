@@ -99,7 +99,7 @@ main { display: grid; gap: 16px; }
 .timeline-row::before { content: ""; position: absolute; inset: 50% 0 auto 0; border-bottom: 1px dashed rgba(255,255,255,0.04); }
 .timeline-row.drag-target { outline: 1px dashed var(--accent); }
 .task-bar { border-radius: 10px; padding: 8px 10px; color: #0b1324; font-weight: 700; font-size: 13px; min-height: 32px; display: flex; align-items: center; box-shadow: 0 8px 24px rgba(0,0,0,0.16); }
-.task-bar span { color: #0b1324; }
+.task-bar span { color: inherit; }
 .task-bar.done { background: #6b7280 !important; color: #e5e7eb; text-decoration: line-through; }
 
 .panel { background: var(--panel); border: 1px solid var(--grid-line); border-radius: 14px; padding: 16px; }
