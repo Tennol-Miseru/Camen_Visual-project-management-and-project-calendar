@@ -47,3 +47,8 @@ Project view: manage projects and steps; selecting a step filters related date b
 Drag to reorder the date bars and project steps.
 
 Use the “Import/Export” buttons at the bottom to back up or restore data via JSON, enabling cross-browser/device synchronization.
+
+致谢
+感谢赛门周先生对本项目的持续使用和反馈，列出了非常多问题和改进点，使得此项目得以改进至较高完成度。
+Acknowledgements
+Thank SimonZhou for his continued use of this project and his valuable feedback. He identified numerous issues and areas for improvement, which significantly contributed to bringing the project to a high level of completion.
