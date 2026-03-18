@@ -117,6 +117,8 @@ main { display: grid; gap: 16px; }
 .timeline-wrapper { background: var(--panel); border: 1px solid var(--grid-line); border-radius: 12px; padding: 12px; margin-top: 10px; overflow-x: auto; }
 .timeline-header { display: grid; gap: 2px; margin-bottom: 8px; color: var(--muted); font-size: 12px; }
 .timeline-grid { display: grid; gap: 4px; }
+.timeline-grid.preview-grid { position: relative; }
+.timeline-grid.preview-grid::after { content: "放置到末尾"; position: absolute; inset: 4px 0 4px 0; border: 1px dashed var(--accent); border-radius: 12px; color: var(--accent); display: flex; align-items: center; justify-content: center; background: rgba(0,191,166,0.06); pointer-events: none; font-size: 12px; }
 .timeline-controls { display: flex; justify-content: flex-end; margin: 6px 0 8px; }
 .timeline-controls .pill { gap: 8px; }
 .timeline-row { display: grid; align-items: center; gap: 2px; position: relative; min-height: 36px; }

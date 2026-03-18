@@ -84,6 +84,7 @@ function bootstrap() {
   const ZOOM_MAX = 4.5;
   let stepDraft = [];
   let editingTaskId = null;
+  let draggingTaskId = null;
 
   bindTabs();
   bindNav();
@@ -94,6 +95,11 @@ function bootstrap() {
   bindTimelineZoom();
   bindNoEnd();
   document.addEventListener("dragend", clearDragState);
+  if (els.timelineGrid) {
+    els.timelineGrid.addEventListener("dragover", onGridDragOver);
+    els.timelineGrid.addEventListener("dragleave", onGridDragLeave);
+    els.timelineGrid.addEventListener("drop", onGridDrop);
+  }
   resetTaskForm();
   initTheme();
   renderStepDraft();
@@ -715,6 +721,8 @@ function bootstrap() {
     document.querySelectorAll(".task-bar.dragging").forEach((b) => b.classList.remove("dragging"));
     document.querySelectorAll(".task-chip.dragging").forEach((c) => c.classList.remove("dragging"));
     document.querySelectorAll(".task-chip.preview").forEach((c) => c.classList.remove("preview"));
+    if (els.timelineGrid) els.timelineGrid.classList.remove("preview-grid");
+    draggingTaskId = null;
   }
 
   function showToast(message) {
@@ -747,6 +755,33 @@ function bootstrap() {
     const toIdx = list.findIndex((t) => t.id === toId);
     if (fromIdx === -1 || toIdx === -1) return;
     list.splice(toIdx, 0, list.splice(fromIdx, 1)[0]);
+    list.forEach((t, i) => {
+      const real = state.tasks.find((x) => x.id === t.id);
+      if (real) real.order = i;
+    });
+    clearDragState();
+    persist();
+    renderAll();
+  }
+
+  function onGridDragOver(e) {
+    if (!draggingTaskId) return;
+    e.preventDefault();
+    if (els.timelineGrid) els.timelineGrid.classList.add("preview-grid");
+  }
+
+  function onGridDragLeave() {
+    if (els.timelineGrid) els.timelineGrid.classList.remove("preview-grid");
+  }
+
+  function onGridDrop(e) {
+    if (!draggingTaskId) return;
+    e.preventDefault();
+    const list = visibleTasks().filter(isValidTask);
+    const fromIdx = list.findIndex((t) => t.id === draggingTaskId);
+    if (fromIdx === -1) return;
+    const [item] = list.splice(fromIdx, 1);
+    list.push(item);
     list.forEach((t, i) => {
       const real = state.tasks.find((x) => x.id === t.id);
       if (real) real.order = i;
@@ -974,6 +1009,7 @@ function bootstrap() {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", e.currentTarget.dataset.taskId);
     e.currentTarget.classList.add("dragging");
+    draggingTaskId = e.currentTarget.dataset.taskId;
   }
   function onTaskDragOver(e) {
     e.preventDefault();
@@ -987,7 +1023,7 @@ function bootstrap() {
   }
   function onTaskDrop(e) {
     e.preventDefault();
-    const fromId = e.dataTransfer.getData("text/plain");
+    const fromId = e.dataTransfer.getData("text/plain") || draggingTaskId;
     const toId = e.currentTarget.dataset.taskId;
     if (!fromId || !toId || fromId === toId) return;
     const list = visibleTasks().filter(isValidTask);
