@@ -77,6 +77,8 @@ function bootstrap() {
 
   const THEMES = ["black", "white"];
   const RATIO_DEFAULT = 70;
+  const ZOOM_MIN = 0.4;
+  const ZOOM_MAX = 3;
   let stepDraft = [];
   let editingTaskId = null;
 
@@ -254,10 +256,10 @@ function bootstrap() {
   function bindTimelineZoom() {
     if (!els.timelineZoom) return;
     let z = Number(state.timelineZoom) || 1;
-    z = clamp(z, 0.6, 2);
+    z = clamp(z, ZOOM_MIN, ZOOM_MAX);
     els.timelineZoom.value = z;
     els.timelineZoom.addEventListener("input", () => {
-      const val = clamp(Number(els.timelineZoom.value), 0.6, 2);
+      const val = clamp(Number(els.timelineZoom.value), ZOOM_MIN, ZOOM_MAX);
       state.timelineZoom = val;
       storage.save("calendar_timeline_zoom", val);
       renderTimeline();
@@ -424,7 +426,7 @@ function bootstrap() {
     const year = state.viewDate.getFullYear();
     const month = state.viewDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const cellSize = Math.round(24 * clamp(Number(state.timelineZoom) || 1, 0.6, 2));
+    const cellSize = Math.round(24 * clamp(Number(state.timelineZoom) || 1, ZOOM_MIN, ZOOM_MAX));
 
     els.timelineHeader.style.gridTemplateColumns = `repeat(${daysInMonth}, minmax(${cellSize}px, 1fr))`;
     els.timelineHeader.innerHTML = "";
@@ -440,7 +442,7 @@ function bootstrap() {
     const tasks = visibleTasks()
       .filter(isValidTask)
       .filter((t) => overlapsMonth(t, year, month))
-      .sort((a, b) => parseDate(a.start) - parseDate(b.start) || parseDate(a.end) - parseDate(b.end) || (a.order ?? 0) - (b.order ?? 0));
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || parseDate(a.start) - parseDate(b.start) || parseDate(a.end) - parseDate(b.end));
 
     const lanes = packTasks(tasks);
     els.timelineGrid.innerHTML = "";
@@ -626,7 +628,9 @@ function bootstrap() {
     node.querySelector(".dot").style.background = task.color;
     node.querySelector(".text").textContent = task.title;
     const projectName = getProjectName(task.projectId);
-    node.title = projectName ? `${projectName} | ${task.start} ~ ${task.end}` : `${task.start} ~ ${task.end}`;
+    const projLabel = projectName || "无所属";
+    node.title = `${projLabel} | ${task.start} ~ ${task.end}`;
+    node.setAttribute("data-project", projLabel);
     node.addEventListener("click", () => startEditTask(task));
     return node;
   }
