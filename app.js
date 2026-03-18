@@ -780,8 +780,19 @@ function bootstrap() {
     const list = visibleTasks().filter(isValidTask);
     const fromIdx = list.findIndex((t) => t.id === draggingTaskId);
     if (fromIdx === -1) return;
+    const lanes = packTasks(list);
+    const rect = els.timelineGrid.getBoundingClientRect();
+    const rowHeight = Math.max(40, rect.height / Math.max(1, lanes.length || 1));
+    let targetRow = Math.floor((e.clientY - rect.top) / rowHeight);
+    targetRow = clamp(targetRow, 0, lanes.length);
+
+    // 计算插入索引：在目标行的首个元素之前；若是新行（末尾），则放列表尾
+    let insertIdx = 0;
+    for (let i = 0; i < targetRow && i < lanes.length; i++) insertIdx += lanes[i].length;
+    if (targetRow >= lanes.length) insertIdx = list.length;
+
     const [item] = list.splice(fromIdx, 1);
-    list.push(item);
+    list.splice(insertIdx > fromIdx ? insertIdx - 1 : insertIdx, 0, item);
     list.forEach((t, i) => {
       const real = state.tasks.find((x) => x.id === t.id);
       if (real) real.order = i;
