@@ -17,7 +17,7 @@ Primarily designed to keep clarity when running multiple projects in parallel; b
 
 使用
 
-- 打开 `index.html`（本地或任何静态托管）。  
+- 打开 `index.html`。  
 - 日期视图：点击日期条可编辑/删除；时间轴展示跨天跨度。  
 - 工程视图：编辑工程和步骤，点击步骤可筛选相关日期条。  
 - 底部“导入/导出”按钮：JSON 备份或恢复数据，跨浏览器/设备同步。
@@ -34,7 +34,7 @@ Pure front-end single-page app: runs directly by opening `index.html`
 
 Usage
 
-Open `index.html` (locally or via any static hosting).
+Open `index.html` .
 
 Date view: click a date bar to edit or delete; the timeline visualizes multi-day spans.
 
