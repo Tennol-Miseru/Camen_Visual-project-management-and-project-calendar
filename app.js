@@ -922,10 +922,12 @@ function bootstrap() {
   function onTaskDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    e.currentTarget.classList.add("preview");
+    const row = e.currentTarget.closest(".timeline-row");
+    if (row) row.classList.add("preview");
   }
   function onTaskDragLeave(e) {
-    e.currentTarget.classList.remove("preview");
+    const row = e.currentTarget.closest(".timeline-row");
+    if (row) row.classList.remove("preview");
   }
   function onTaskDrop(e) {
     e.preventDefault();
@@ -941,6 +943,8 @@ function bootstrap() {
       const real = state.tasks.find((x) => x.id === t.id);
       if (real) real.order = i;
     });
+    document.querySelectorAll(".timeline-row.preview").forEach((r) => r.classList.remove("preview"));
+    document.querySelectorAll(".task-bar.dragging").forEach((b) => b.classList.remove("dragging"));
     persist();
     renderAll();
   }

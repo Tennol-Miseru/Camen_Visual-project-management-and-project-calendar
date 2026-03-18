@@ -109,8 +109,8 @@ main { display: grid; gap: 16px; }
 .task-bar span { color: inherit; }
 .task-bar.done { background: #6b7280 !important; color: #e5e7eb; text-decoration: line-through; }
 .task-bar.dragging { opacity: 0.65; outline: 2px dashed var(--accent); outline-offset: 2px; }
-.task-bar.preview { position: relative; }
-.task-bar.preview::after { content: "放置"; position: absolute; inset: 4px; border: 1px dashed var(--accent); border-radius: 8px; pointer-events: none; font-size: 11px; color: var(--accent); display: flex; align-items: center; justify-content: center; background: rgba(0,191,166,0.08); }
+.timeline-row.preview { position: relative; }
+.timeline-row.preview::after { content: "放置"; position: absolute; inset: 2px 0 2px 0; border: 1px dashed var(--accent); border-radius: 10px; pointer-events: none; font-size: 11px; color: var(--accent); display: flex; align-items: center; justify-content: center; background: rgba(0,191,166,0.06); }
 
 .panel { background: var(--panel); border: 1px solid var(--grid-line); border-radius: 14px; padding: 16px; }
 .footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
