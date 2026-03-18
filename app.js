@@ -80,8 +80,8 @@ function bootstrap() {
 
   const THEMES = ["black", "white", "gray", "sunny"];
   const RATIO_DEFAULT = 70;
-  const ZOOM_MIN = 0.4;
-  const ZOOM_MAX = 3;
+  const ZOOM_MIN = 0.2;
+  const ZOOM_MAX = 4;
   let stepDraft = [];
   let editingTaskId = null;
 
@@ -452,7 +452,7 @@ function bootstrap() {
     const year = state.viewDate.getFullYear();
     const month = state.viewDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const cellSize = Math.round(24 * clamp(Number(state.timelineZoom) || 1, ZOOM_MIN, ZOOM_MAX));
+    const cellSize = Math.round(20 * clamp(Number(state.timelineZoom) || 1, ZOOM_MIN, ZOOM_MAX));
 
     els.timelineHeader.style.gridTemplateColumns = `repeat(${daysInMonth}, minmax(${cellSize}px, 1fr))`;
     els.timelineHeader.innerHTML = "";

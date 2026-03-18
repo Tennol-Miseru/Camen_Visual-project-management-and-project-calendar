@@ -85,7 +85,7 @@ body.dual-view #ratio-pill { display: inline-flex; }
 #ratio-range::-webkit-slider-thumb { width: 14px; height: 14px; border-radius: 50%; background: #9ca3af; margin-top: -4px; box-shadow: 0 0 0 2px var(--panel); }
 #ratio-range::-moz-range-track { height: 6px; background: var(--grid-line); border-radius: 999px; }
 #ratio-range::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #9ca3af; border: 2px solid var(--panel); }
-#timeline-zoom { width: 160px; accent-color: #6b7280; }
+#timeline-zoom { width: 180px; accent-color: #6b7280; }
 #timeline-zoom::-webkit-slider-runnable-track { height: 6px; background: var(--grid-line); border-radius: 999px; }
 #timeline-zoom::-webkit-slider-thumb { width: 14px; height: 14px; border-radius: 50%; background: #9ca3af; margin-top: -4px; box-shadow: 0 0 0 2px var(--panel); }
 #timeline-zoom::-moz-range-track { height: 6px; background: var(--grid-line); border-radius: 999px; }
