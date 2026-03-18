@@ -917,15 +917,15 @@ function bootstrap() {
   function onTaskDragStart(e) {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", e.currentTarget.dataset.taskId);
-    e.currentTarget.classList.add("drag-target");
+    e.currentTarget.classList.add("dragging");
   }
   function onTaskDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    e.currentTarget.classList.add("drag-target");
+    e.currentTarget.classList.add("preview");
   }
   function onTaskDragLeave(e) {
-    e.currentTarget.classList.remove("drag-target");
+    e.currentTarget.classList.remove("preview");
   }
   function onTaskDrop(e) {
     e.preventDefault();
