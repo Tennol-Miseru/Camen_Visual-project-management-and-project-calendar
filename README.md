@@ -7,12 +7,14 @@ A small engineering calendar tool with visual timeline bars for date-based tasks
 Primarily designed to keep clarity when running multiple projects in parallel; built almost entirely with Codex—feel free to use and modify.
 
 功能 Features
+
 - 月历 + 时间轴双视图，彩色跨天日期条
 - 工程步骤管理，步骤可与日期条关联并筛选
 - 本地 `localStorage` 自动保存；JSON 导入/导出便于备份与迁移
 - 纯前端单页：直接打开 `index.html` 即可
 
 使用 Usage
+
 -打开 `index.html`（本地或任何静态托管）。  
 -日期视图：点击日期条可编辑/删除；时间轴展示跨天跨度。  
 -工程视图：编辑工程和步骤，点击步骤可筛选相关日期条。  
