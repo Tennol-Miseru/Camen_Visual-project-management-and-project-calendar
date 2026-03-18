@@ -47,21 +47,6 @@ body[data-theme="gray"] {
   color-scheme: dark;
 }
 
-body[data-theme="sunny"] {
-  --bg: #fff9e6;
-  --panel: #fff3c8;
-  --muted: #a67c00;
-  --grid-line: #f2dc9b;
-  --text: #3c2a00;
-  --card: #fff0b8;
-  --chip-bg: rgba(255,207,102,0.3);
-  --chip-hover: rgba(255,207,102,0.42);
-  --input-bg: #fff4cc;
-  --page-bg: #fff9e6;
-  --accent: #f4b000;
-  color-scheme: light;
-}
-
 * { box-sizing: border-box; }
 body {
   margin: 0;
