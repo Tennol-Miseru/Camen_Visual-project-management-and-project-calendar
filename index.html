@@ -14,6 +14,14 @@
     </div>
     <div class="header-actions">
       <label class="pill">
+        同屏
+        <input type="checkbox" id="dual-toggle" title="同时显示日历与工程" checked>
+      </label>
+      <label class="pill" id="ratio-pill">
+        日历宽度
+        <input type="range" id="ratio-range" min="55" max="85" value="70" title="调整日历区域比例">
+      </label>
+      <label class="pill">
         主题
         <select id="theme-select">
           <option value="black">黑色</option>
@@ -39,7 +47,10 @@
         </div>
         <div class="toolbar-right">
           <div id="legend" class="legend"></div>
-          <button type="button" class="btn-ghost filter-btn" id="filter-indicator" hidden>筛选：仅当前步骤（点此清除）</button>
+          <select id="project-filter" class="select-ghost">
+            <option value="">全部工程</option>
+          </select>
+          <button type="button" class="btn-ghost" id="filter-clear" hidden>清除筛选</button>
         </div>
       </div>
 
@@ -61,10 +72,13 @@
             <input required name="color" type="color" value="#00bfa6">
           </label>
           <label>开始日期
-            <input required name="start" type="date">
+            <input required name="start" type="date" id="start-date">
           </label>
           <label>结束日期
-            <input required name="end" type="date">
+            <input required name="end" type="date" id="end-date">
+            <label class="inline">
+              <input type="checkbox" id="no-end"> 不限时（自动延伸至当月末）
+            </label>
           </label>
           <label>所属工程
             <select name="projectId" id="project-select"></select>
@@ -105,9 +119,17 @@
             <div class="step-list" id="step-list"></div>
             <button type="button" class="btn-ghost" id="add-step">＋ 添加步骤</button>
           </label>
+          <label class="inline">
+            <input type="checkbox" id="project-draft" name="draft"> 保存为草稿（不在主列表显示）
+          </label>
           <button type="submit">创建工程</button>
         </form>
       </details>
+
+      <div class="panel" id="draft-box">
+        <h3>草稿箱</h3>
+        <div id="draft-list" class="project-list"></div>
+      </div>
     </section>
   </main>
 
