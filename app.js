@@ -340,6 +340,7 @@ function bootstrap() {
           projects: state.projects,
           tasks: state.tasks,
           theme: document.body.dataset.theme || "black",
+          fpdEnabled: Boolean(state.fpdEnabled),
           exportedAt: new Date().toISOString()
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });

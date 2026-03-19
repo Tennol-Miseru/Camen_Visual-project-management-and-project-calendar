@@ -30,10 +30,6 @@
         </select>
       </label>
       <div class="pill">本地数据 · 自动保存</div>
-      <label class="pill">
-        防帕金森
-        <input type="checkbox" id="fpd-toggle" title="将所有日期条持续时间减半">
-      </label>
     </div>
   </header>
 
@@ -165,10 +161,23 @@
     <div class="task-chip"><span class="dot"></span><span class="text"></span></div>
   </template>
 
+  <div class="panel footer">
+    <div class="footer-left">
+      <strong>防帕金森模式</strong>
+      <span class="muted">勾选后日期条自动减半时长，可随时恢复</span>
+    </div>
+    <div class="footer-actions">
+      <label class="pill">
+        防帕金森
+        <input type="checkbox" id="fpd-toggle" title="将所有日期条持续时间减半">
+      </label>
+    </div>
+  </div>
+
   <footer class="panel footer">
     <div class="footer-left">
       <strong>数据导入 / 导出</strong>
-      <span class="muted">文件格式：JSON，含工程、步骤、日期条与主题</span>
+      <span class="muted">文件格式：JSON，含工程、步骤、日期条、主题、防帕金森设置</span>
     </div>
     <div class="footer-actions">
       <input type="file" id="import-file" accept="application/json" hidden>
