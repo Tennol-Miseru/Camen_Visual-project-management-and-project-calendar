@@ -1,0 +1,138 @@
+{
+  "projects": [
+    {
+      "id": "proj-b",
+      "name": "测试用立项",
+      "description": "测试用简介",
+      "steps": [
+        {
+          "id": "step-b1",
+          "title": "测试工序1",
+          "done": false,
+          "order": 1
+        },
+        {
+          "id": "step-b2",
+          "title": "测试工序2",
+          "done": false,
+          "order": 2
+        },
+        {
+          "id": "step-b3",
+          "title": "测试工序3",
+          "done": false,
+          "order": 3
+        }
+      ],
+      "color": "#bf0005",
+      "draft": false
+    },
+    {
+      "id": "proj-77feba7c-3d2a-479c-a538-59648d57652c",
+      "name": "TestNol",
+      "description": "TestNol2",
+      "steps": [
+        {
+          "id": "step-86a7c7dd-59ac-402b-b0f3-bc27841a3a82",
+          "title": "TestNol3",
+          "done": true,
+          "order": 1
+        },
+        {
+          "id": "step-3520ba32-123a-4e16-a77d-0e80af80b181",
+          "title": "TestNol4",
+          "done": true,
+          "order": 2
+        },
+        {
+          "id": "step-495bbe9c-4eaf-43bd-92da-04b0246818e0",
+          "title": "I called this calendar \"Carmen\".",
+          "done": false,
+          "order": 3
+        }
+      ],
+      "color": "#6000bf",
+      "draft": false
+    },
+    {
+      "id": "proj-51929c7b-681d-47e9-84d5-48548ebca984",
+      "name": "我是草稿3",
+      "description": "草稿是我0",
+      "steps": [],
+      "draft": true
+    }
+  ],
+  "tasks": [
+    {
+      "id": "8986d8dc-88cc-4e96-ac43-29f74764064c",
+      "title": "完成工序X",
+      "start": "2026-03-18",
+      "end": "2026-03-22",
+      "color": "#ffff80",
+      "projectId": "proj-b",
+      "stepId": "",
+      "note": "",
+      "order": 0
+    },
+    {
+      "id": "4562f34c-820e-4339-947d-336f6d9780d4",
+      "title": "会员到期前用完余额",
+      "start": "2026-03-18",
+      "end": "2026-03-26",
+      "color": "#80ff00",
+      "projectId": "",
+      "stepId": "",
+      "note": "",
+      "order": 4,
+      "done": false
+    },
+    {
+      "id": "23ba7a9c-d8b8-40c8-996a-69d9877f7cc2",
+      "title": "自定义，可视化",
+      "start": "2026-03-11",
+      "end": "2026-03-19",
+      "color": "#8000ff",
+      "projectId": "proj-77feba7c-3d2a-479c-a538-59648d57652c",
+      "stepId": "",
+      "note": "",
+      "order": 2,
+      "done": false
+    },
+    {
+      "id": "a38d7dcb-183f-462d-bc52-fd57555285db",
+      "title": "预发布",
+      "start": "2026-03-31",
+      "end": "2026-03-31",
+      "color": "#ff0000",
+      "projectId": "proj-77feba7c-3d2a-479c-a538-59648d57652c",
+      "stepId": "",
+      "note": "",
+      "order": 1,
+      "done": false
+    },
+    {
+      "id": "6d03f1ff-bcf8-48f6-95a3-769e48538e5b",
+      "title": "工序Y",
+      "start": "2026-03-25",
+      "end": "2026-03-30",
+      "color": "#ffffff",
+      "projectId": "",
+      "stepId": "",
+      "note": "",
+      "order": 3
+    },
+    {
+      "id": "9c162bdf-03f1-486e-9b72-9d060206e554",
+      "title": "不限时任务",
+      "start": "2026-03-25",
+      "end": "2026-03-31",
+      "color": "#ff8000",
+      "projectId": "proj-77feba7c-3d2a-479c-a538-59648d57652c",
+      "stepId": "",
+      "note": "",
+      "order": 5
+    }
+  ],
+  "theme": "black",
+  "exportedAt": "2026-03-19T02:51:03.467Z"
+}
