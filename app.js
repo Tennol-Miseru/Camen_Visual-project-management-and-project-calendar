@@ -183,7 +183,7 @@ function bootstrap() {
       const data = Object.fromEntries(new FormData(els.projectForm));
       const isDraft = !!els.projectDraft?.checked;
       const existing = state.projects.find((p) => p.id === data.projectId);
-      const steps = normalizeSteps(stepDraft, existing?.steps || []);
+      const steps = normalizeSteps(stepDraft, existing?.steps || [], existing?.id || "");
       if (existing) {
         Object.assign(existing, {
           name: data.name.trim(),
@@ -935,7 +935,7 @@ function bootstrap() {
     renderAll();
   }
 
-  function normalizeSteps(draft, existingSteps) {
+  function normalizeSteps(draft, existingSteps, projectId) {
     const clean = draft
       .map((s) => ({ ...s, title: (s.title || "").trim() }))
       .filter((s) => s.title.length > 0)
@@ -948,7 +948,7 @@ function bootstrap() {
 
     const validIds = new Set(clean.map((s) => s.id));
     state.tasks.forEach((t) => {
-      if (t.stepId && !validIds.has(t.stepId)) t.stepId = "";
+      if (t.projectId === projectId && t.stepId && !validIds.has(t.stepId)) t.stepId = "";
     });
     return clean;
   }
