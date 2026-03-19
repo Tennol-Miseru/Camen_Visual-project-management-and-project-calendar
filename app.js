@@ -315,6 +315,8 @@ function bootstrap() {
       storage.save("calendar_fpd", state.fpdEnabled);
       applyParkinson(state.fpdEnabled);
       renderAll();
+      if (state.fpdEnabled) showToast("已缩减日期条时长为计划的一半，取消勾选防帕金森按钮可复原");
+      else showToast("已还原日期条原始时长");
     };
     els.fpdToggle.addEventListener("change", apply);
     if (state.fpdEnabled) applyParkinson(true);
@@ -965,10 +967,12 @@ function bootstrap() {
         order: idx + 1
       }));
 
-    const validIds = new Set(clean.map((s) => s.id));
-    state.tasks.forEach((t) => {
-      if (t.projectId === projectId && t.stepId && !validIds.has(t.stepId)) t.stepId = "";
-    });
+    if (projectId) {
+      const validIds = new Set(clean.map((s) => s.id));
+      state.tasks.forEach((t) => {
+        if (t.projectId === projectId && t.stepId && !validIds.has(t.stepId)) t.stepId = "";
+      });
+    }
     return clean;
   }
 
