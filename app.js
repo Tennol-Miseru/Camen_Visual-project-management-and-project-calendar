@@ -52,6 +52,7 @@ function bootstrap() {
     projectsList: document.getElementById("projects-list"),
     stepList: document.getElementById("step-list"),
     addStepBtn: document.getElementById("add-step"),
+    projectColor: document.getElementById("project-color"),
     themeSelect: document.getElementById("theme-select"),
     importBtn: document.getElementById("import-btn"),
     exportBtn: document.getElementById("export-btn"),
@@ -188,6 +189,7 @@ function bootstrap() {
           name: data.name.trim(),
           description: data.description || "",
           steps,
+          color: data.projectColor || existing.color || "#00bfa6",
           draft: isDraft
         });
         if (state.filterStepId && !steps.some((s) => s.id === state.filterStepId)) state.filterStepId = null;
@@ -197,6 +199,7 @@ function bootstrap() {
           name: data.name.trim(),
           description: data.description || "",
           steps,
+          color: data.projectColor || "#00bfa6",
           draft: isDraft
         });
       }
@@ -374,8 +377,8 @@ function bootstrap() {
     els.legend.innerHTML = "";
     const fragment = document.createDocumentFragment();
     const items = state.projects.filter((p) => !p.draft).map((p) => {
-      const task = state.tasks.find((t) => t.projectId === p.id);
-      return { label: p.name, color: task ? task.color : "#94a3b8" };
+      const task = state.tasks.find((t) => t.projectId === p.id && t.color);
+      return { label: p.name, color: p.color || task?.color || "#94a3b8" };
     });
     if (items.length === 0) {
       const span = document.createElement("span");
@@ -531,6 +534,13 @@ function bootstrap() {
       head.className = "card-head";
       const title = document.createElement("h3");
       title.textContent = p.name;
+      const colorChip = document.createElement("span");
+      colorChip.className = "project-color-chip";
+      const chipDot = document.createElement("span");
+      chipDot.className = "dot";
+      chipDot.style.background = p.color || "#00bfa6";
+      colorChip.appendChild(chipDot);
+      head.appendChild(colorChip);
       const actions = document.createElement("div");
       actions.style.display = "flex";
       actions.style.gap = "6px";
@@ -904,6 +914,7 @@ function bootstrap() {
     ui.projectIdInput.value = project.id;
     els.projectForm.name.value = project.name;
     els.projectForm.description.value = project.description || "";
+    if (els.projectColor) els.projectColor.value = project.color || "#00bfa6";
     stepDraft = project.steps.map((s) => ({ ...s }));
     renderStepDraft();
     ui.projectFormLegend.textContent = "编辑工程";
@@ -1070,6 +1081,7 @@ function bootstrap() {
     ui.projectFormLegend.textContent = "新增工程";
     if (ui.projectSubmit) ui.projectSubmit.textContent = "创建工程";
     if (els.projectDraft) els.projectDraft.checked = false;
+    if (els.projectColor) els.projectColor.value = "#00bfa6";
   }
 
   function persist() {
@@ -1111,6 +1123,8 @@ function bootstrap() {
   }
 
   function getProjectColor(projectId) {
+    const project = state.projects.find((p) => p.id === projectId);
+    if (project?.color) return project.color;
     const firstTask = state.tasks.find((t) => t.projectId === projectId && t.color);
     if (firstTask) return firstTask.color;
     return "#00bfa6";
