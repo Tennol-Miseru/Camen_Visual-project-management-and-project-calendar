@@ -29,7 +29,8 @@ function bootstrap() {
     viewDate: new Date(),
     filterProjectId: "",
     filterStepId: null,
-    timelineZoom: storage.load("calendar_timeline_zoom", 1)
+    timelineZoom: storage.load("calendar_timeline_zoom", 1),
+    fpdEnabled: storage.load("calendar_fpd", false)
   };
 
   const els = {
@@ -63,6 +64,7 @@ function bootstrap() {
     ratioRange: document.getElementById("ratio-range"),
     ratioPill: document.getElementById("ratio-pill"),
     timelineZoom: document.getElementById("timeline-zoom"),
+    fpdToggle: document.getElementById("fpd-toggle"),
     noEnd: document.getElementById("no-end"),
     startDate: document.getElementById("start-date"),
     endDate: document.getElementById("end-date"),
@@ -95,6 +97,7 @@ function bootstrap() {
   bindDualView();
   bindTimelineZoom();
   bindNoEnd();
+  bindFPD();
   document.addEventListener("dragend", clearDragState);
   if (els.timelineGrid) {
     els.timelineGrid.addEventListener("dragover", onGridDragOver);
@@ -157,8 +160,9 @@ function bootstrap() {
           note: data.note || "",
           done: els.taskDone?.checked || false
         });
+        if (state.fpdEnabled && t) compressTask(t, true);
       } else {
-        state.tasks.push({
+        const newTask = {
           id: uuid(),
           title: data.title.trim(),
           start: data.start,
@@ -169,7 +173,9 @@ function bootstrap() {
           note: data.note || "",
           order: state.tasks.length,
           done: els.taskDone?.checked || false
-        });
+        };
+        state.tasks.push(newTask);
+        if (state.fpdEnabled) compressTask(newTask, true);
       }
       persist();
       resetTaskForm();
@@ -299,6 +305,19 @@ function bootstrap() {
       storage.save("calendar_timeline_zoom", val);
       renderTimeline();
     });
+  }
+
+  function bindFPD() {
+    if (!els.fpdToggle) return;
+    els.fpdToggle.checked = Boolean(state.fpdEnabled);
+    const apply = () => {
+      state.fpdEnabled = els.fpdToggle.checked;
+      storage.save("calendar_fpd", state.fpdEnabled);
+      applyParkinson(state.fpdEnabled);
+      renderAll();
+    };
+    els.fpdToggle.addEventListener("change", apply);
+    if (state.fpdEnabled) applyParkinson(true);
   }
 
   function bindNoEnd() {
@@ -1128,5 +1147,33 @@ function bootstrap() {
     const firstTask = state.tasks.find((t) => t.projectId === projectId && t.color);
     if (firstTask) return firstTask.color;
     return "#00bfa6";
+  }
+
+  function applyParkinson(enable) {
+    state.tasks.forEach((t) => {
+      if (enable) {
+        if (!t.origEnd || t.end === t.origEnd) compressTask(t, true);
+      } else if (t.origEnd) {
+        t.end = t.origEnd;
+        delete t.origEnd;
+      }
+    });
+    persist();
+  }
+
+  function compressTask(task, resetOrig = false) {
+    if (!task) return;
+    if (resetOrig || !task.origEnd) task.origEnd = task.end;
+    const startDate = parseDate(task.start);
+    const endBase = parseDate(task.origEnd || task.end);
+    const dur = (endBase - startDate) / (1000 * 60 * 60 * 24) + 1;
+    if (dur <= 1) {
+      task.end = toDateStrLocal(endBase);
+      return;
+    }
+    const half = Math.max(1, Math.ceil(dur / 2));
+    const newEnd = new Date(startDate);
+    newEnd.setDate(newEnd.getDate() + (half - 1));
+    task.end = toDateStrLocal(newEnd);
   }
 }
