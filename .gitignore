@@ -1,3 +1,4 @@
-.vscode/*
+.vscode
 sh.bat
 sh.exe
+.codex
