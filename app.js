@@ -30,7 +30,8 @@ function bootstrap() {
     filterProjectId: "",
     filterStepId: null,
     timelineZoom: storage.load("calendar_timeline_zoom", 1),
-    fpdEnabled: storage.load("calendar_fpd", false)
+    fpdEnabled: storage.load("calendar_fpd", false),
+    statsProjectId: null
   };
 
   const els = {
@@ -70,7 +71,13 @@ function bootstrap() {
     endDate: document.getElementById("end-date"),
     draftList: document.getElementById("draft-list"),
     projectDraft: document.getElementById("project-draft"),
-    toast: document.getElementById("toast")
+    toast: document.getElementById("toast"),
+    statsContent: document.getElementById("stats-content"),
+    statsTitle: document.getElementById("stats-title"),
+    statsBack: document.getElementById("stats-back"),
+    statsOverlay: document.getElementById("stats-overlay"),
+    statsClose: document.getElementById("stats-close"),
+    statsOverviewBtn: document.getElementById("stats-overview-btn")
   };
 
   const ui = {
@@ -98,6 +105,7 @@ function bootstrap() {
   bindTimelineZoom();
   bindNoEnd();
   bindFPD();
+  bindStats();
   document.addEventListener("dragend", clearDragState);
   if (els.timelineGrid) {
     els.timelineGrid.addEventListener("dragover", onGridDragOver);
@@ -576,6 +584,11 @@ function bootstrap() {
       delBtn.addEventListener("click", () => deleteProject(p.id));
       actions.appendChild(editBtn);
       actions.appendChild(delBtn);
+      const statsBtn = document.createElement("button");
+      statsBtn.className = "btn-ghost";
+      statsBtn.textContent = "统计";
+      statsBtn.addEventListener("click", () => showProjectStats(p.id));
+      actions.appendChild(statsBtn);
       head.appendChild(title);
       head.appendChild(actions);
 
@@ -1180,5 +1193,225 @@ function bootstrap() {
     const newEnd = new Date(startDate);
     newEnd.setDate(newEnd.getDate() + (half - 1));
     task.end = toDateStrLocal(newEnd);
+  }
+
+  // ── Stats helpers ──
+
+  const CHART_COLORS = [
+    "#00bfa6", "#f59e0b", "#3b82f6", "#ef4444",
+    "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"
+  ];
+
+  function calcTaskDays(task) {
+    const s = parseDate(task.start);
+    const e = parseDate(task.end);
+    return Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+  }
+
+  function calcStepDays(projectId, stepId) {
+    return state.tasks
+      .filter((t) => t.projectId === projectId && t.stepId === stepId)
+      .reduce((sum, t) => sum + calcTaskDays(t), 0);
+  }
+
+  function calcProjectTotalDays(projectId) {
+    return state.tasks
+      .filter((t) => t.projectId === projectId)
+      .reduce((sum, t) => sum + calcTaskDays(t), 0);
+  }
+
+  function calcProjectProgress(project) {
+    if (!project.steps.length) return 0;
+    const done = project.steps.filter((s) => s.done).length;
+    return Math.round((done / project.steps.length) * 100);
+  }
+
+  function bindStats() {
+    els.statsClose.addEventListener("click", () => {
+      els.statsOverlay.hidden = true;
+    });
+    els.statsOverviewBtn.addEventListener("click", () => {
+      state.statsProjectId = null;
+      els.statsOverlay.hidden = false;
+      renderStats();
+    });
+  }
+
+  function showProjectStats(projectId) {
+    state.statsProjectId = projectId;
+    els.statsOverlay.hidden = false;
+    renderStats();
+  }
+
+  function renderStats() {
+    if (state.statsProjectId) {
+      const project = state.projects.find((p) => p.id === state.statsProjectId);
+      if (!project) {
+        state.statsProjectId = null;
+        renderStats();
+        return;
+      }
+      renderProjectStats(project);
+    } else {
+      renderOverviewStats();
+    }
+  }
+
+  function renderProjectStats(project) {
+    els.statsTitle.textContent = `${project.name} — 统计`;
+    els.statsBack.hidden = false;
+    els.statsBack.onclick = () => { state.statsProjectId = null; renderStats(); };
+
+    const tasks = state.tasks.filter((t) => t.projectId === project.id);
+    const totalDays = calcProjectTotalDays(project.id);
+    const progress = calcProjectProgress(project);
+    const doneSteps = project.steps.filter((s) => s.done).length;
+
+    // Find project date range
+    let earliest = null, latest = null;
+    tasks.forEach((t) => {
+      const s = parseDate(t.start), e = parseDate(t.end);
+      if (!earliest || s < earliest) earliest = s;
+      if (!latest || e > latest) latest = e;
+    });
+    const spanDays = earliest && latest ? Math.round((latest - earliest) / (1000 * 60 * 60 * 24)) + 1 : 0;
+
+    let html = "";
+
+    // Key metrics
+    html += `<div class="stats-grid">`;
+    html += `<div class="stat-card"><h3>工程进度</h3>
+      <div class="progress-bar"><div class="progress-fill" style="width:${progress}%;background:${project.color || 'var(--accent)'}"></div></div>
+      <div class="progress-label"><span>${doneSteps} / ${project.steps.length} 步骤完成</span><span>${progress}%</span></div></div>`;
+    html += `<div class="stat-card"><h3>关联任务</h3><div class="stat-number">${tasks.length}<span class="stat-unit">条</span></div></div>`;
+    html += `<div class="stat-card"><h3>任务总工时</h3><div class="stat-number">${totalDays}<span class="stat-unit">天</span></div></div>`;
+    html += `<div class="stat-card"><h3>工程跨度</h3><div class="stat-number">${spanDays}<span class="stat-unit">天</span></div></div>`;
+    html += `</div>`;
+
+    // Pie chart — step days distribution
+    if (project.steps.length > 0) {
+      html += `<div class="stats-section"><h3>各步骤占用天数</h3>`;
+      const stepData = project.steps.map((s, i) => ({
+        title: s.title,
+        days: calcStepDays(project.id, s.id),
+        color: CHART_COLORS[i % CHART_COLORS.length],
+        done: s.done
+      }));
+      // tasks not assigned to any step
+      const unassignedDays = tasks.filter((t) => !t.stepId).reduce((sum, t) => sum + calcTaskDays(t), 0);
+      if (unassignedDays > 0) {
+        stepData.push({ title: "未分配步骤", days: unassignedDays, color: "#6b7280", done: false });
+      }
+
+      const total = stepData.reduce((s, d) => s + d.days, 0);
+      if (total > 0) {
+        let gradParts = [], acc = 0;
+        stepData.forEach((d) => {
+          if (d.days === 0) return;
+          const pct = (d.days / total) * 100;
+          gradParts.push(`${d.color} ${acc}% ${acc + pct}%`);
+          acc += pct;
+        });
+        const grad = `conic-gradient(${gradParts.join(", ")})`;
+        html += `<div class="pie-wrap">`;
+        html += `<div class="pie-chart" style="background:${grad}"><div class="pie-center">${total} 天</div></div>`;
+        html += `<div class="pie-legend">`;
+        stepData.forEach((d) => {
+          if (d.days === 0 && total > 0) return;
+          const pct = total > 0 ? ((d.days / total) * 100).toFixed(1) : 0;
+          html += `<div class="pie-legend-item"><span class="pie-legend-dot" style="background:${d.color}"></span>${d.title}<span class="pie-legend-value">${d.days} 天 (${pct}%)</span></div>`;
+        });
+        html += `</div></div>`;
+      } else {
+        html += `<div class="stats-empty">暂无任务数据</div>`;
+      }
+      html += `</div>`;
+    }
+
+    // Step detail table
+    if (project.steps.length > 0) {
+      html += `<div class="stats-section"><h3>步骤详情</h3>`;
+      html += `<table class="step-table"><thead><tr><th>序号</th><th>步骤</th><th>状态</th><th>任务数</th><th>天数</th></tr></thead><tbody>`;
+      project.steps.forEach((s, i) => {
+        const stepTasks = tasks.filter((t) => t.stepId === s.id);
+        const days = calcStepDays(project.id, s.id);
+        html += `<tr><td>${i + 1}</td><td>${s.title}</td><td><span class="step-status ${s.done ? 'done' : 'pending'}"></span> ${s.done ? '已完成' : '进行中'}</td><td>${stepTasks.length}</td><td>${days}</td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+    }
+
+    els.statsContent.innerHTML = html;
+  }
+
+  function renderOverviewStats() {
+    els.statsTitle.textContent = "工程统计总览";
+    els.statsBack.hidden = true;
+
+    const projects = state.projects.filter((p) => !p.draft);
+    if (projects.length === 0) {
+      els.statsContent.innerHTML = `<div class="stats-empty">暂无工程数据，先创建一个工程吧。</div>`;
+      return;
+    }
+
+    const totalTasks = state.tasks.length;
+    const avgProgress = Math.round(projects.reduce((s, p) => s + calcProjectProgress(p), 0) / projects.length);
+
+    let html = "";
+
+    // Summary metrics
+    html += `<div class="stats-grid">`;
+    html += `<div class="stat-card"><h3>工程总数</h3><div class="stat-number">${projects.length}<span class="stat-unit">个</span></div></div>`;
+    html += `<div class="stat-card"><h3>任务总数</h3><div class="stat-number">${totalTasks}<span class="stat-unit">条</span></div></div>`;
+    html += `<div class="stat-card"><h3>平均完成率</h3>
+      <div class="progress-bar"><div class="progress-fill" style="width:${avgProgress}%;background:var(--accent)"></div></div>
+      <div class="progress-label"><span>所有工程平均</span><span>${avgProgress}%</span></div></div>`;
+    html += `</div>`;
+
+    // Progress comparison bar chart
+    html += `<div class="stats-section"><h3>工程进度对比</h3><div class="bar-chart">`;
+    projects.forEach((p) => {
+      const pct = calcProjectProgress(p);
+      const color = p.color || "var(--accent)";
+      html += `<div class="bar-item" style="cursor:pointer" data-pid="${p.id}">
+        <div class="bar-item-label" title="${p.name}">${p.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct, 2)}%;background:${color}">${pct > 15 ? pct + '%' : ''}</div></div>
+        <div class="bar-value">${pct}%</div></div>`;
+    });
+    html += `</div></div>`;
+
+    // Duration comparison bar chart
+    const maxDays = Math.max(...projects.map((p) => calcProjectTotalDays(p.id)), 1);
+    html += `<div class="stats-section"><h3>工程工时对比（天）</h3><div class="bar-chart">`;
+    projects.forEach((p) => {
+      const days = calcProjectTotalDays(p.id);
+      const pct = (days / maxDays) * 100;
+      const color = p.color || "var(--accent)";
+      html += `<div class="bar-item" style="cursor:pointer" data-pid="${p.id}">
+        <div class="bar-item-label" title="${p.name}">${p.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct, 2)}%;background:${color}">${days > 0 && pct > 15 ? days + '天' : ''}</div></div>
+        <div class="bar-value">${days} 天</div></div>`;
+    });
+    html += `</div></div>`;
+
+    // Tasks per project comparison
+    const maxTasks = Math.max(...projects.map((p) => state.tasks.filter((t) => t.projectId === p.id).length), 1);
+    html += `<div class="stats-section"><h3>各工程任务数</h3><div class="bar-chart">`;
+    projects.forEach((p) => {
+      const count = state.tasks.filter((t) => t.projectId === p.id).length;
+      const pct = (count / maxTasks) * 100;
+      const color = p.color || "var(--accent)";
+      html += `<div class="bar-item" style="cursor:pointer" data-pid="${p.id}">
+        <div class="bar-item-label" title="${p.name}">${p.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct, 2)}%;background:${color}">${count > 0 && pct > 15 ? count + '条' : ''}</div></div>
+        <div class="bar-value">${count} 条</div></div>`;
+    });
+    html += `</div></div>`;
+
+    els.statsContent.innerHTML = html;
+
+    // Click to drill into project
+    els.statsContent.querySelectorAll("[data-pid]").forEach((el) => {
+      el.addEventListener("click", () => showProjectStats(el.dataset.pid));
+    });
   }
 }

@@ -118,7 +118,10 @@
 
     <section id="projects-view" class="view">
       <div class="panel">
-        <h2>工程列表</h2>
+        <div class="card-head">
+          <h2>工程列表</h2>
+          <button type="button" class="btn-ghost" id="stats-overview-btn">总览统计</button>
+        </div>
         <div id="projects-list" class="project-list"></div>
       </div>
 
@@ -156,6 +159,17 @@
       </div>
     </section>
   </main>
+
+  <div id="stats-overlay" class="overlay" hidden>
+    <div class="overlay-inner">
+      <div class="stats-toolbar">
+        <button type="button" class="btn-ghost" id="stats-back" hidden>← 返回总览</button>
+        <h2 id="stats-title">工程统计总览</h2>
+        <button type="button" class="btn-ghost" id="stats-close" style="margin-left:auto">✕ 关闭</button>
+      </div>
+      <div id="stats-content"></div>
+    </div>
+  </div>
 
   <template id="task-chip-template">
     <div class="task-chip"><span class="dot"></span><span class="text"></span></div>
