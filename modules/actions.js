@@ -32,6 +32,16 @@
         ctx.storage.save("calendar_theme", next);
       });
     }
+    if (ctx.els.themeCycleBtn) {
+      ctx.els.themeCycleBtn.addEventListener("click", () => {
+        const current = document.body.dataset.theme || "black";
+        const idx = ctx.constants.THEMES.indexOf(current);
+        const next = ctx.constants.THEMES[(idx + 1) % ctx.constants.THEMES.length];
+        applyTheme(ctx, next);
+        ctx.storage.save("calendar_theme", next);
+        if (ctx.els.themeSelect) ctx.els.themeSelect.value = next;
+      });
+    }
   }
 
   function applyRatio(ctx, percent) {
@@ -183,6 +193,29 @@
       handle.addEventListener("dragover", (e) => ns.bindings.onStepDragOver(ctx, e));
       handle.addEventListener("dragleave", (e) => ns.bindings.onStepDragLeave(ctx, e));
       handle.addEventListener("drop", (e) => ns.bindings.onStepDrop(ctx, e, idx));
+      // Touch drag polyfill for step handles
+      if (ns.touch && ns.touch.isTouchDevice()) {
+        ns.touch.enableTouchDrag(handle, {
+          onDragStart: function (e) { ns.bindings.onStepDragStart(ctx, e, idx); },
+          onDragOver: function (e) {
+            var row = e.currentTarget.closest && e.currentTarget.closest(".step-row");
+            if (row) { e.currentTarget = row; ns.bindings.onStepDragOver(ctx, e); }
+          },
+          onDragLeave: function (e) {
+            var row = e.currentTarget.closest && e.currentTarget.closest(".step-row");
+            if (row) { e.currentTarget = row; ns.bindings.onStepDragLeave(ctx, e); }
+          },
+          onDrop: function (e) {
+            var row = e.currentTarget.closest && e.currentTarget.closest(".step-row");
+            if (row) {
+              var targetIdx = Number(row.dataset.idx);
+              e.currentTarget = row;
+              ns.bindings.onStepDrop(ctx, e, targetIdx);
+            }
+          },
+          onDragEnd: function () {}
+        });
+      }
       row.appendChild(handle);
 
       const input = document.createElement("input");

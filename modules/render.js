@@ -117,6 +117,25 @@
     node.addEventListener("dragleave", (e) => ns.bindings.onChipDragLeave(ctx, e));
     node.addEventListener("drop", (e) => ns.bindings.onChipDrop(ctx, e));
     node.addEventListener("click", () => ns.actions.startEditTask(ctx, task));
+    // Touch drag polyfill
+    if (ns.touch && ns.touch.isTouchDevice()) {
+      ns.touch.enableTouchDrag(node, {
+        onDragStart: function (e) { ns.bindings.onChipDragStart(ctx, e); },
+        onDragOver: function (e) {
+          var chip = e.currentTarget.closest && e.currentTarget.closest(".task-chip");
+          if (chip) { e.currentTarget = chip; ns.bindings.onChipDragOver(ctx, e); }
+        },
+        onDragLeave: function (e) {
+          var chip = e.currentTarget.closest && e.currentTarget.closest(".task-chip");
+          if (chip) { e.currentTarget = chip; ns.bindings.onChipDragLeave(ctx, e); }
+        },
+        onDrop: function (e) {
+          var chip = e.currentTarget.closest && e.currentTarget.closest(".task-chip");
+          if (chip) { e.currentTarget = chip; ns.bindings.onChipDrop(ctx, e); }
+        },
+        onDragEnd: function () { ns.bindings.clearDragState(ctx); }
+      });
+    }
     return node;
   }
 
@@ -186,6 +205,20 @@
         bar.addEventListener("dragover", (e) => ns.bindings.onTaskDragOver(ctx, e));
         bar.addEventListener("dragleave", (e) => ns.bindings.onTaskDragLeave(ctx, e));
         bar.addEventListener("drop", (e) => ns.bindings.onTaskDrop(ctx, e));
+        // Touch drag polyfill for timeline bars
+        if (ns.touch && ns.touch.isTouchDevice()) {
+          ns.touch.enableTouchDrag(bar, {
+            onDragStart: function (e) { ns.bindings.onTaskDragStart(ctx, e); },
+            onDragOver: function (e) { ns.bindings.onTaskDragOver(ctx, e); },
+            onDragLeave: function (e) { ns.bindings.onTaskDragLeave(ctx, e); },
+            onDrop: function (e) {
+              var barEl = e.currentTarget.closest && e.currentTarget.closest(".task-bar");
+              if (barEl) { e.currentTarget = barEl; ns.bindings.onTaskDrop(ctx, e); }
+              else { ns.bindings.onGridDrop(ctx, e); }
+            },
+            onDragEnd: function () { ns.bindings.clearDragState(ctx); }
+          });
+        }
         row.appendChild(bar);
       });
       ctx.els.timelineGrid.appendChild(row);
@@ -254,6 +287,12 @@
           ev.stopPropagation();
           ns.actions.startEditProject(ctx, p);
         });
+        // Long-press as dblclick alternative on touch
+        if (ns.touch && ns.touch.isTouchDevice()) {
+          ns.touch.enableLongPress(chip, function () {
+            ns.actions.startEditProject(ctx, p);
+          }, 500);
+        }
 
         const check = document.createElement("input");
         check.type = "checkbox";
@@ -428,7 +467,7 @@
     // Step detail table
     if (project.steps.length > 0) {
       html += `<div class="stats-section"><h3>步骤详情</h3>`;
-      html += `<table class="step-table"><thead><tr><th>序号</th><th>步骤</th><th>状态</th><th>任务数</th><th>天数</th></tr></thead><tbody>`;
+      html += `<div class="table-scroll-wrapper"><table class="step-table"><thead><tr><th>序号</th><th>步骤</th><th>状态</th><th>任务数</th><th>天数</th></tr></thead><tbody>`;
       project.steps.forEach((s, i) => {
         const stepTasks = tasks.filter((t) => t.stepId === s.id);
         const days = ns.tasks.calcStepDays(ctx, project.id, s.id);
@@ -436,7 +475,7 @@
           s.done ? "done" : "pending"
         }"></span> ${s.done ? "已完成" : "进行中"}</td><td>${stepTasks.length}</td><td>${days}</td></tr>`;
       });
-      html += `</tbody></table></div>`;
+      html += `</tbody></table></div></div>`;
     }
 
     ctx.els.statsContent.innerHTML = html;

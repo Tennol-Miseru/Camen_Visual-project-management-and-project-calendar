@@ -114,7 +114,8 @@
       statsBack: document.getElementById("stats-back"),
       statsOverlay: document.getElementById("stats-overlay"),
       statsClose: document.getElementById("stats-close"),
-      statsOverviewBtn: document.getElementById("stats-overview-btn")
+      statsOverviewBtn: document.getElementById("stats-overview-btn"),
+      themeCycleBtn: document.getElementById("theme-cycle-btn")
     };
 
     const ui = {
@@ -137,7 +138,8 @@
       stepDraft: [],
       editingTaskId: null,
       draggingTaskId: null,
-      toastTimer: null
+      toastTimer: null,
+      isMobile: false
     };
 
     return { storage, uuid, state, els, ui, constants, runtime };

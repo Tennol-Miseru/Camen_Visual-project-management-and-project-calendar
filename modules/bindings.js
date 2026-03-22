@@ -15,6 +15,22 @@
     bindFPD(ctx);
     bindStats(ctx);
     document.addEventListener("dragend", () => clearDragState(ctx));
+
+    // Mobile adaptation
+    if (ns.touch) {
+      ctx.runtime.isMobile = ns.touch.isMobile();
+      ns.touch.onMobileChange(function (e) {
+        ctx.runtime.isMobile = e.matches;
+        if (ctx.runtime.isMobile && ctx.els.dualToggle) {
+          ctx.els.dualToggle.checked = false;
+          ctx.els.dualToggle.dispatchEvent(new Event("change"));
+        }
+      });
+      if (ctx.runtime.isMobile && ctx.els.dualToggle) {
+        ctx.els.dualToggle.checked = false;
+        ctx.els.dualToggle.dispatchEvent(new Event("change"));
+      }
+    }
     if (ctx.els.timelineGrid) {
       ctx.els.timelineGrid.addEventListener("dragover", (e) => onGridDragOver(ctx, e));
       ctx.els.timelineGrid.addEventListener("dragleave", () => onGridDragLeave(ctx));
@@ -192,6 +208,9 @@
   function bindDualView(ctx) {
     if (!ctx.els.dualToggle) return;
     const apply = () => {
+      if (ctx.runtime.isMobile) {
+        ctx.els.dualToggle.checked = false;
+      }
       const on = ctx.els.dualToggle.checked;
       document.body.classList.toggle("dual-view", on);
       if (ctx.els.ratioPill) ctx.els.ratioPill.hidden = !on;
