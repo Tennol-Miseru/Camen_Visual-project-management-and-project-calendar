@@ -301,6 +301,10 @@
         check.addEventListener("click", (ev) => {
           ev.stopPropagation();
           s.done = !s.done;
+          // 同步：将步骤完成状态同步到所有绑定该步骤的日期条
+          ctx.state.tasks.forEach((t) => {
+            if (t.projectId === p.id && t.stepId === s.id) t.done = s.done;
+          });
           ns.actions.persist(ctx);
           renderProjects(ctx);
           renderAll(ctx);

@@ -83,7 +83,8 @@
       }
       if (ctx.runtime.editingTaskId) {
         const t = ctx.state.tasks.find((x) => x.id === ctx.runtime.editingTaskId);
-        if (t)
+        if (t) {
+          const newDone = ctx.els.taskDone?.checked || false;
           Object.assign(t, {
             title: data.title.trim(),
             start: data.start,
@@ -92,10 +93,18 @@
             projectId: data.projectId || "",
             stepId: data.stepId || "",
             note: data.note || "",
-            done: ctx.els.taskDone?.checked || false
+            done: newDone
           });
+          // 同步：将日期条完成状态同步到所绑定的步骤
+          if (t.stepId && t.projectId) {
+            const proj = ctx.state.projects.find((p) => p.id === t.projectId);
+            const step = proj?.steps.find((s) => s.id === t.stepId);
+            if (step) step.done = newDone;
+          }
+        }
         if (ctx.state.fpdEnabled && t) ns.tasks.compressTask(ctx, t, true);
       } else {
+        const newDoneVal = ctx.els.taskDone?.checked || false;
         const newTask = {
           id: ctx.uuid(),
           title: data.title.trim(),
@@ -106,9 +115,15 @@
           stepId: data.stepId || "",
           note: data.note || "",
           order: ctx.state.tasks.length,
-          done: ctx.els.taskDone?.checked || false
+          done: newDoneVal
         };
         ctx.state.tasks.push(newTask);
+        // 同步：将日期条完成状态同步到所绑定的步骤
+        if (newTask.stepId && newTask.projectId) {
+          const proj = ctx.state.projects.find((p) => p.id === newTask.projectId);
+          const step = proj?.steps.find((s) => s.id === newTask.stepId);
+          if (step) step.done = newDoneVal;
+        }
         if (ctx.state.fpdEnabled) ns.tasks.compressTask(ctx, newTask, true);
       }
       ns.actions.persist(ctx);
