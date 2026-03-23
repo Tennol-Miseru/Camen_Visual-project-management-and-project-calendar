@@ -396,6 +396,7 @@
     const tasks = ctx.state.tasks.filter((t) => t.projectId === project.id);
     const totalDays = ns.tasks.calcProjectTotalDays(ctx, project.id);
     const progress = ns.tasks.calcProjectProgress(ctx, project);
+    const weightedProgress = ns.tasks.calcProjectWeightedProgress(ctx, project);
     const doneSteps = project.steps.filter((s) => s.done).length;
 
     // Find project date range
@@ -413,11 +414,16 @@
 
     // Key metrics
     html += `<div class="stats-grid">`;
-    html += `<div class="stat-card"><h3>工程进度</h3>
+    html += `<div class="stat-card"><h3>工程进度（等分）</h3>
       <div class="progress-bar"><div class="progress-fill" style="width:${progress}%;background:${
       project.color || "var(--accent)"
     }"></div></div>
       <div class="progress-label"><span>${doneSteps} / ${project.steps.length} 步骤完成</span><span>${progress}%</span></div></div>`;
+    html += `<div class="stat-card"><h3>工程进度（加权）</h3>
+      <div class="progress-bar"><div class="progress-fill" style="width:${weightedProgress}%;background:${
+      project.color || "var(--accent)"
+    }"></div></div>
+      <div class="progress-label"><span>按日期条天数加权</span><span>${weightedProgress}%</span></div></div>`;
     html += `<div class="stat-card"><h3>关联任务</h3><div class="stat-number">${tasks.length}<span class="stat-unit">条</span></div></div>`;
     html += `<div class="stat-card"><h3>任务总工时</h3><div class="stat-number">${totalDays}<span class="stat-unit">天</span></div></div>`;
     html += `<div class="stat-card"><h3>工程跨度</h3><div class="stat-number">${spanDays}<span class="stat-unit">天</span></div></div>`;
@@ -497,6 +503,7 @@
 
     const totalTasks = ctx.state.tasks.length;
     const avgProgress = Math.round(projects.reduce((s, p) => s + ns.tasks.calcProjectProgress(ctx, p), 0) / projects.length);
+    const avgWeighted = Math.round(projects.reduce((s, p) => s + ns.tasks.calcProjectWeightedProgress(ctx, p), 0) / projects.length);
 
     let html = "";
 
@@ -504,9 +511,12 @@
     html += `<div class="stats-grid">`;
     html += `<div class="stat-card"><h3>工程总数</h3><div class="stat-number">${projects.length}<span class="stat-unit">个</span></div></div>`;
     html += `<div class="stat-card"><h3>任务总数</h3><div class="stat-number">${totalTasks}<span class="stat-unit">条</span></div></div>`;
-    html += `<div class="stat-card"><h3>平均完成率</h3>
+    html += `<div class="stat-card"><h3>平均完成率（等分）</h3>
       <div class="progress-bar"><div class="progress-fill" style="width:${avgProgress}%;background:var(--accent)"></div></div>
       <div class="progress-label"><span>所有工程平均</span><span>${avgProgress}%</span></div></div>`;
+    html += `<div class="stat-card"><h3>平均完成率（加权）</h3>
+      <div class="progress-bar"><div class="progress-fill" style="width:${avgWeighted}%;background:var(--accent)"></div></div>
+      <div class="progress-label"><span>按日期条天数加权</span><span>${avgWeighted}%</span></div></div>`;
     html += `</div>`;
 
     // Progress comparison bar chart

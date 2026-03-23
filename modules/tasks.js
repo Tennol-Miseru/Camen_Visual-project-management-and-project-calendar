@@ -98,6 +98,20 @@
     return Math.round((done / project.steps.length) * 100);
   }
 
+  // 加权进度：按各步骤绑定的日期条天数作为权重
+  function calcProjectWeightedProgress(ctx, project) {
+    if (!project.steps.length) return 0;
+    let totalWeight = 0;
+    let doneWeight = 0;
+    project.steps.forEach((s) => {
+      const days = calcStepDays(ctx, project.id, s.id);
+      totalWeight += days;
+      if (s.done) doneWeight += days;
+    });
+    if (totalWeight === 0) return 0;
+    return Math.round((doneWeight / totalWeight) * 100);
+  }
+
   ns.tasks.visibleTasks = visibleTasks;
   ns.tasks.isValidTask = isValidTask;
   ns.tasks.isTaskDone = isTaskDone;
@@ -109,5 +123,6 @@
   ns.tasks.calcStepDays = calcStepDays;
   ns.tasks.calcProjectTotalDays = calcProjectTotalDays;
   ns.tasks.calcProjectProgress = calcProjectProgress;
+  ns.tasks.calcProjectWeightedProgress = calcProjectWeightedProgress;
 })(window.CamenCalendar = window.CamenCalendar || {});
 
