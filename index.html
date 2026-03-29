@@ -30,7 +30,6 @@
         </select>
       </label>
       <div class="pill desktop-only">本地数据 · 自动保存</div>
-      <button type="button" class="theme-toggle-btn mobile-only" id="theme-cycle-btn" title="切换主题">🎨</button>
     </div>
   </header>
 
@@ -178,13 +177,16 @@
 
   <div class="panel footer">
     <div class="footer-left">
-      <strong>防帕金森模式</strong>
-      <span class="muted">勾选后日期条自动减半时长，可随时恢复</span>
+      <strong>日历模式</strong>
     </div>
     <div class="footer-actions">
       <label class="pill">
         防帕金森
         <input type="checkbox" id="fpd-toggle" title="将所有日期条持续时间减半">
+      </label>
+      <label class="pill">
+        静音
+        <input type="checkbox" id="mute-toggle" title="关闭/开启音效提示">
       </label>
     </div>
   </div>
@@ -195,10 +197,6 @@
       <span class="muted">文件格式：JSON，含工程、步骤、日期条、主题、防帕金森设置</span>
     </div>
     <div class="footer-actions">
-      <label class="pill">
-        并入现有数据
-        <input type="checkbox" id="import-merge">
-      </label>
       <input type="file" id="import-file" accept="application/json" hidden>
       <button type="button" class="btn-ghost" id="import-btn">导入</button>
       <button type="button" id="export-btn">导出为 JSON</button>
@@ -209,12 +207,18 @@
     <div class="modal">
       <div class="modal-head">
         <h3>导入数据</h3>
-        <button type="button" class="btn-ghost" id="import-close">关闭</button>
+        <button type="button" class="btn-ghost modal-close" id="import-close">关闭</button>
       </div>
       <div class="import-grid">
-        <div id="import-drop" class="drop-zone" aria-label="拖拽文件到此处，或点击选择">
-          <p>拖拽 JSON 文件到这里，或点击选择</p>
-          <button type="button" class="btn-ghost" id="import-choose">选择文件</button>
+        <div class="import-row">
+          <div id="import-drop" class="drop-zone" aria-label="拖拽文件到此处，或点击选择">
+            <p>拖拽 JSON 文件到这里，或点击选择</p>
+            <button type="button" class="btn-ghost" id="import-choose">选择文件</button>
+          </div>
+          <label class="pill">
+            并入现有数据
+            <input type="checkbox" id="import-merge">
+          </label>
         </div>
         <div class="paste-box">
           <p class="muted">或粘贴 JSON 内容后导入</p>

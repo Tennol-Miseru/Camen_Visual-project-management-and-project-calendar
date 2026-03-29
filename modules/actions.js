@@ -16,6 +16,18 @@
     ctx.runtime.toastTimer = setTimeout(() => ctx.els.toast.classList.remove("show"), 1800);
   }
 
+  function playSfx(ctx, type) {
+    if (ctx.state.muted) return;
+    const audio = ctx.sfx?.[type];
+    if (!audio) return;
+    try {
+      audio.currentTime = 0;
+      audio.play();
+    } catch (err) {
+      // ignore playback failures (e.g., browser autoplay policies)
+    }
+  }
+
   function applyTheme(ctx, name) {
     document.body.dataset.theme = name;
   }
@@ -280,6 +292,7 @@
     if (submitBtn) submitBtn.textContent = "更新日期条";
     if (ctx.els.deleteTaskBtn) ctx.els.deleteTaskBtn.disabled = false;
     document.querySelector('[data-target="calendar-view"]').click();
+    playSfx(ctx, "click");
   }
 
   function startEditProject(ctx, project) {
@@ -295,6 +308,7 @@
     const formDetails = document.querySelector("#projects-view details");
     if (formDetails) formDetails.open = true;
     document.querySelector('[data-target="projects-view"]').click();
+    playSfx(ctx, "click");
   }
 
   function deleteProject(ctx, projectId) {
@@ -334,4 +348,5 @@
   ns.actions.startEditProject = startEditProject;
   ns.actions.deleteProject = deleteProject;
   ns.actions.showProjectStats = showProjectStats;
+  ns.actions.playSfx = playSfx;
 })(window.CamenCalendar = window.CamenCalendar || {});

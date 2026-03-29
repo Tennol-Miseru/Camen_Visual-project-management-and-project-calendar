@@ -55,6 +55,12 @@
   function createContext() {
     const storage = createStorage();
     const uuid = createUuid();
+    const sfx = {
+      click: new Audio("sounds/tf2-button-click-release.mp3"),
+      save: new Audio("sounds/savepoint.mp3")
+    };
+    sfx.click.preload = "auto";
+    sfx.save.preload = "auto";
 
     const seedProjects = [];
     const seedTasks = [];
@@ -67,6 +73,7 @@
       filterStepId: null,
       timelineZoom: storage.load("calendar_timeline_zoom", 1),
       fpdEnabled: storage.load("calendar_fpd", false),
+      muted: storage.load("calendar_muted", false),
       statsProjectId: null
     };
 
@@ -110,6 +117,7 @@
       ratioPill: document.getElementById("ratio-pill"),
       timelineZoom: document.getElementById("timeline-zoom"),
       fpdToggle: document.getElementById("fpd-toggle"),
+      muteToggle: document.getElementById("mute-toggle"),
       noEnd: document.getElementById("no-end"),
       startDate: document.getElementById("start-date"),
       endDate: document.getElementById("end-date"),
@@ -149,7 +157,7 @@
       isMobile: false
     };
 
-    return { storage, uuid, state, els, ui, constants, runtime };
+    return { storage, uuid, state, els, ui, constants, runtime, sfx };
   }
 
   ns.core.createContext = createContext;

@@ -13,6 +13,7 @@
     bindTimelineZoom(ctx);
     bindNoEnd(ctx);
     bindFPD(ctx);
+    bindMute(ctx);
     bindStats(ctx);
     document.addEventListener("dragend", () => clearDragState(ctx));
 
@@ -135,6 +136,7 @@
       ns.actions.resetTaskForm(ctx);
       ns.render.renderAll(ctx);
       ns.actions.showToast(ctx, "保存成功");
+      ns.actions.playSfx(ctx, "save");
     });
 
     // project submit
@@ -168,6 +170,7 @@
       ns.actions.resetProjectDraft(ctx);
       ns.render.renderAll(ctx);
       ns.actions.showToast(ctx, "保存成功");
+      ns.actions.playSfx(ctx, "save");
     });
 
     ctx.els.projectSelect.addEventListener("change", () => ns.actions.populateStepSelect(ctx, ctx.els.projectSelect.value));
@@ -281,6 +284,17 @@
     if (ctx.state.fpdEnabled) ns.actions.applyParkinson(ctx, true);
   }
 
+  function bindMute(ctx) {
+    if (!ctx.els.muteToggle) return;
+    ctx.els.muteToggle.checked = Boolean(ctx.state.muted);
+    const apply = () => {
+      ctx.state.muted = ctx.els.muteToggle.checked;
+      ctx.storage.save("calendar_muted", ctx.state.muted);
+      ns.actions.showToast(ctx, ctx.state.muted ? "已静音" : "已开启音效");
+    };
+    ctx.els.muteToggle.addEventListener("change", apply);
+  }
+
   function bindNoEnd(ctx) {
     if (!ctx.els.noEnd || !ctx.els.startDate || !ctx.els.endDate) return;
     const sync = () => {
@@ -293,6 +307,7 @@
   }
 
   function bindImportExport(ctx) {
+    if (ctx.els.importOverlay) ctx.els.importOverlay.hidden = true;
     if (ctx.els.exportBtn) {
       ctx.els.exportBtn.addEventListener("click", () => {
         const payload = {
@@ -318,6 +333,11 @@
       });
     }
     if (ctx.els.importClose) ctx.els.importClose.addEventListener("click", () => closeImportModal(ctx));
+    if (ctx.els.importOverlay) {
+      ctx.els.importOverlay.addEventListener("click", (e) => {
+        if (e.target === ctx.els.importOverlay) closeImportModal(ctx);
+      });
+    }
     if (ctx.els.importChoose && ctx.els.importFile) {
       ctx.els.importChoose.addEventListener("click", () => ctx.els.importFile.click());
       ctx.els.importFile.addEventListener("change", async (e) => {

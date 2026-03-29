@@ -281,7 +281,8 @@
         const chip = document.createElement("div");
         chip.className = "step-chip";
         chip.dataset.stepId = s.id;
-        chip.innerHTML = `<span class="badge">${idx + 1}</span> ${s.title}`;
+        const badgeColor = p.color || "#5ac8fa";
+        chip.innerHTML = `<span class="badge" style="background:${badgeColor}">${idx + 1}</span> ${s.title}`;
         if (s.done) chip.classList.add("done");
         chip.addEventListener("dblclick", (ev) => {
           ev.stopPropagation();
@@ -301,6 +302,7 @@
         check.addEventListener("click", (ev) => {
           ev.stopPropagation();
           s.done = !s.done;
+          ns.actions.playSfx(ctx, "save");
           // 同步：将步骤完成状态同步到所有绑定该步骤的日期条
           ctx.state.tasks.forEach((t) => {
             if (t.projectId === p.id && t.stepId === s.id) t.done = s.done;
