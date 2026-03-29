@@ -200,10 +200,30 @@
         <input type="checkbox" id="import-merge">
       </label>
       <input type="file" id="import-file" accept="application/json" hidden>
-      <button type="button" class="btn-ghost" id="import-btn">导入文件</button>
+      <button type="button" class="btn-ghost" id="import-btn">导入</button>
       <button type="button" id="export-btn">导出为 JSON</button>
     </div>
   </footer>
+
+  <div id="import-overlay" class="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3>导入数据</h3>
+        <button type="button" class="btn-ghost" id="import-close">关闭</button>
+      </div>
+      <div class="import-grid">
+        <div id="import-drop" class="drop-zone" aria-label="拖拽文件到此处，或点击选择">
+          <p>拖拽 JSON 文件到这里，或点击选择</p>
+          <button type="button" class="btn-ghost" id="import-choose">选择文件</button>
+        </div>
+        <div class="paste-box">
+          <p class="muted">或粘贴 JSON 内容后导入</p>
+          <textarea id="import-text" rows="8" placeholder="粘贴 JSON 内容"></textarea>
+          <button type="button" id="import-paste-btn">从粘贴导入</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="modules/core.js"></script>
@@ -215,4 +235,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-
