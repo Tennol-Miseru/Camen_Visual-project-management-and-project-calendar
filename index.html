@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>工程日历</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -13,15 +13,15 @@
       <h1>工程日历</h1>
     </div>
     <div class="header-actions">
-      <label class="pill">
+      <label class="pill desktop-only">
         同屏
         <input type="checkbox" id="dual-toggle" title="同时显示日历与工程" checked>
       </label>
-      <label class="pill" id="ratio-pill">
+      <label class="pill desktop-only" id="ratio-pill">
         日历宽度
         <input type="range" id="ratio-range" min="55" max="85" value="70" title="调整日历区域比例">
       </label>
-      <label class="pill">
+      <label class="pill desktop-only">
         主题
         <select id="theme-select">
           <option value="black">黑色</option>
@@ -29,7 +29,8 @@
           <option value="gray">灰暗</option>
         </select>
       </label>
-      <div class="pill">本地数据 · 自动保存</div>
+      <div class="pill desktop-only">本地数据 · 自动保存</div>
+      <button type="button" class="theme-toggle-btn mobile-only" id="theme-cycle-btn" title="切换主题">🎨</button>
     </div>
   </header>
 
@@ -118,7 +119,10 @@
 
     <section id="projects-view" class="view">
       <div class="panel">
-        <h2>工程列表</h2>
+        <div class="card-head">
+          <h2>工程列表</h2>
+          <button type="button" class="btn-ghost" id="stats-overview-btn">总览统计</button>
+        </div>
         <div id="projects-list" class="project-list"></div>
       </div>
 
@@ -157,6 +161,17 @@
     </section>
   </main>
 
+  <div id="stats-overlay" class="overlay" hidden>
+    <div class="overlay-inner">
+      <div class="stats-toolbar">
+        <button type="button" class="btn-ghost" id="stats-back" hidden>← 返回总览</button>
+        <h2 id="stats-title">工程统计总览</h2>
+        <button type="button" class="btn-ghost" id="stats-close" style="margin-left:auto">✕ 关闭</button>
+      </div>
+      <div id="stats-content"></div>
+    </div>
+  </div>
+
   <template id="task-chip-template">
     <div class="task-chip"><span class="dot"></span><span class="text"></span></div>
   </template>
@@ -180,6 +195,10 @@
       <span class="muted">文件格式：JSON，含工程、步骤、日期条、主题、防帕金森设置</span>
     </div>
     <div class="footer-actions">
+      <label class="pill">
+        并入现有数据
+        <input type="checkbox" id="import-merge">
+      </label>
       <input type="file" id="import-file" accept="application/json" hidden>
       <button type="button" class="btn-ghost" id="import-btn">导入文件</button>
       <button type="button" id="export-btn">导出为 JSON</button>
@@ -187,7 +206,13 @@
   </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
+  <script src="modules/core.js"></script>
+  <script src="modules/tasks.js"></script>
+  <script src="modules/actions.js"></script>
+  <script src="modules/render.js"></script>
+  <script src="modules/touch.js"></script>
+  <script src="modules/bindings.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
+
