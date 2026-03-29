@@ -302,15 +302,14 @@
         check.addEventListener("click", (ev) => {
           ev.stopPropagation();
           s.done = !s.done;
-          ns.actions.playSfx(ctx, "save");
           // 同步：将步骤完成状态同步到所有绑定该步骤的日期条
           ctx.state.tasks.forEach((t) => {
             if (t.projectId === p.id && t.stepId === s.id) t.done = s.done;
-            if (t.projectId === p.id && t.stepId === s.id) ns.actions.applyInfiniteIfDone(ctx, t);
           });
           ns.actions.persist(ctx);
           renderProjects(ctx);
           renderAll(ctx);
+          ns.actions.playSfx(ctx, "save");
         });
         chip.appendChild(check);
 

@@ -3,36 +3,16 @@
 
   ns.actions = ns.actions || {};
 
-  // Pre-unlocks audio so browsers with autoplay restrictions will allow later playback
-  function primeSfx(ctx) {
-    if (ctx.runtime.sfxPrimed) return;
-    const warm = () => {
-      ctx.runtime.sfxPrimed = true;
-      document.removeEventListener("pointerdown", warm);
-      document.removeEventListener("keydown", warm);
-      Object.values(ctx.sfx || {}).forEach((audio) => {
-        try {
-          audio.muted = true;
-          audio.currentTime = 0;
-          const p = audio.play();
-          if (p && typeof p.finally === "function") {
-            p.finally(() => {
-              audio.pause();
-              audio.currentTime = 0;
-              audio.muted = false;
-            });
-          } else {
-            audio.pause();
-            audio.currentTime = 0;
-            audio.muted = false;
-          }
-        } catch (err) {
-          console.warn("[sfx] warmup failed", err);
-        }
-      });
-    };
-    document.addEventListener("pointerdown", warm, { once: true });
-    document.addEventListener("keydown", warm, { once: true });
+  function playSfx(ctx, type) {
+    if (ctx.state.muted) return;
+    const audio = ctx.sfx?.[type];
+    if (!audio) return;
+    try {
+      audio.currentTime = 0;
+      audio.play();
+    } catch (err) {
+      // ignore playback failures
+    }
   }
 
   function persist(ctx) {
@@ -46,19 +26,6 @@
     ctx.els.toast.classList.add("show");
     if (ctx.runtime.toastTimer) clearTimeout(ctx.runtime.toastTimer);
     ctx.runtime.toastTimer = setTimeout(() => ctx.els.toast.classList.remove("show"), 1800);
-  }
-
-  function playSfx(ctx, type) {
-    if (ctx.state.muted) return;
-    const audio = ctx.sfx?.[type];
-    if (!audio) return;
-    try {
-      audio.currentTime = 0;
-      const p = audio.play();
-      if (p && typeof p.catch === "function") p.catch((err) => console.warn("[sfx] play failed:", type, err?.name || err));
-    } catch (err) {
-      console.warn("[sfx] play threw:", type, err);
-    }
   }
 
   function applyTheme(ctx, name) {
@@ -118,18 +85,6 @@
       }
     });
     persist(ctx);
-  }
-
-  function applyInfiniteIfDone(ctx, task) {
-    if (!task || !task.noEnd) return;
-    const done = ns.tasks.isTaskDone ? ns.tasks.isTaskDone(ctx, task) : Boolean(task.done);
-    if (done) {
-      if (!task.infiniteEnd) task.infiniteEnd = task.end;
-      task.end = task.start;
-    } else if (task.infiniteEnd) {
-      task.end = task.infiniteEnd;
-      delete task.infiniteEnd;
-    }
   }
 
   function changeMonth(ctx, delta) {
@@ -325,7 +280,6 @@
     if (submitBtn) submitBtn.textContent = "更新日期条";
     if (ctx.els.deleteTaskBtn) ctx.els.deleteTaskBtn.disabled = false;
     document.querySelector('[data-target="calendar-view"]').click();
-    playSfx(ctx, "click");
   }
 
   function startEditProject(ctx, project) {
@@ -341,7 +295,6 @@
     const formDetails = document.querySelector("#projects-view details");
     if (formDetails) formDetails.open = true;
     document.querySelector('[data-target="projects-view"]').click();
-    playSfx(ctx, "click");
   }
 
   function deleteProject(ctx, projectId) {
@@ -368,7 +321,6 @@
   ns.actions.getProjectName = getProjectName;
   ns.actions.getProjectColor = getProjectColor;
   ns.actions.applyParkinson = applyParkinson;
-  ns.actions.applyInfiniteIfDone = applyInfiniteIfDone;
   ns.actions.changeMonth = changeMonth;
   ns.actions.populateProjectSelect = populateProjectSelect;
   ns.actions.populateProjectFilter = populateProjectFilter;
@@ -382,5 +334,4 @@
   ns.actions.deleteProject = deleteProject;
   ns.actions.showProjectStats = showProjectStats;
   ns.actions.playSfx = playSfx;
-  ns.actions.primeSfx = primeSfx;
 })(window.CamenCalendar = window.CamenCalendar || {});

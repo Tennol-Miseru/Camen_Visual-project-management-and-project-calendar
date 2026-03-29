@@ -55,12 +55,15 @@
   function createContext() {
     const storage = createStorage();
     const uuid = createUuid();
-    const sfx = {
-      click: new Audio("sounds/tf2-button-click-release.mp3"),
-      save: new Audio("sounds/savepoint.mp3")
+    const sfxData = {
+      click: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=",
+      save: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA="
     };
-    sfx.click.preload = "auto";
-    sfx.save.preload = "auto";
+    const sfx = {
+      click: new Audio(sfxData.click),
+      save: new Audio(sfxData.save)
+    };
+    Object.values(sfx).forEach((a) => (a.preload = "auto"));
 
     const seedProjects = [];
     const seedTasks = [];
@@ -103,13 +106,6 @@
       importBtn: document.getElementById("import-btn"),
       exportBtn: document.getElementById("export-btn"),
       importFile: document.getElementById("import-file"),
-      importMerge: document.getElementById("import-merge"),
-      importOverlay: document.getElementById("import-overlay"),
-      importClose: document.getElementById("import-close"),
-      importDrop: document.getElementById("import-drop"),
-      importChoose: document.getElementById("import-choose"),
-      importText: document.getElementById("import-text"),
-      importPasteBtn: document.getElementById("import-paste-btn"),
       projectFilter: document.getElementById("project-filter"),
       filterClear: document.getElementById("filter-clear"),
       dualToggle: document.getElementById("dual-toggle"),
@@ -154,8 +150,7 @@
       editingTaskId: null,
       draggingTaskId: null,
       toastTimer: null,
-      isMobile: false,
-      sfxPrimed: false
+      isMobile: false
     };
 
     return { storage, uuid, state, els, ui, constants, runtime, sfx };
@@ -168,3 +163,4 @@
   ns.core.monthEnd = monthEnd;
   ns.core.parseDate = parseDate;
 })(window.CamenCalendar = window.CamenCalendar || {});
+

@@ -4,7 +4,6 @@
   ns.bindings = ns.bindings || {};
 
   function init(ctx) {
-    if (ns.actions && typeof ns.actions.primeSfx === "function") ns.actions.primeSfx(ctx);
     bindTabs(ctx);
     bindNav(ctx);
     bindForms(ctx);
@@ -38,7 +37,6 @@
       ctx.els.timelineGrid.addEventListener("dragleave", () => onGridDragLeave(ctx));
       ctx.els.timelineGrid.addEventListener("drop", (e) => onGridDrop(ctx, e));
     }
-    ctx.state.tasks.forEach((t) => ns.actions.applyInfiniteIfDone(ctx, t));
     ns.actions.resetTaskForm(ctx);
     ns.actions.initTheme(ctx);
     ns.actions.renderStepDraft(ctx);
@@ -96,8 +94,7 @@
             projectId: data.projectId || "",
             stepId: data.stepId || "",
             note: data.note || "",
-            done: newDone,
-            noEnd: ctx.els.noEnd?.checked || false
+            done: newDone
           });
           // 同步：将日期条完成状态同步到所绑定的步骤
           if (t.stepId && t.projectId) {
@@ -107,7 +104,6 @@
           }
         }
         if (ctx.state.fpdEnabled && t) ns.tasks.compressTask(ctx, t, true);
-        ns.actions.applyInfiniteIfDone(ctx, t);
       } else {
         const newDoneVal = ctx.els.taskDone?.checked || false;
         const newTask = {
@@ -120,8 +116,7 @@
           stepId: data.stepId || "",
           note: data.note || "",
           order: ctx.state.tasks.length,
-          done: newDoneVal,
-          noEnd: ctx.els.noEnd?.checked || false
+          done: newDoneVal
         };
         ctx.state.tasks.push(newTask);
         // 同步：将日期条完成状态同步到所绑定的步骤
@@ -131,7 +126,6 @@
           if (step) step.done = newDoneVal;
         }
         if (ctx.state.fpdEnabled) ns.tasks.compressTask(ctx, newTask, true);
-        ns.actions.applyInfiniteIfDone(ctx, newTask);
       }
       ns.actions.persist(ctx);
       ns.actions.resetTaskForm(ctx);
@@ -308,7 +302,6 @@
   }
 
   function bindImportExport(ctx) {
-    if (ctx.els.importOverlay) ctx.els.importOverlay.hidden = true;
     if (ctx.els.exportBtn) {
       ctx.els.exportBtn.addEventListener("click", () => {
         const payload = {
@@ -328,112 +321,34 @@
       });
     }
 
-    if (ctx.els.importBtn) {
-      ctx.els.importBtn.addEventListener("click", () => {
-        if (ctx.els.importOverlay) ctx.els.importOverlay.hidden = false;
-      });
-    }
-    if (ctx.els.importClose) ctx.els.importClose.addEventListener("click", () => closeImportModal(ctx));
-    if (ctx.els.importOverlay) {
-      ctx.els.importOverlay.addEventListener("click", (e) => {
-        if (e.target === ctx.els.importOverlay) closeImportModal(ctx);
-      });
-    }
-    if (ctx.els.importChoose && ctx.els.importFile) {
-      ctx.els.importChoose.addEventListener("click", () => ctx.els.importFile.click());
+    if (ctx.els.importBtn && ctx.els.importFile) {
+      ctx.els.importBtn.addEventListener("click", () => ctx.els.importFile.click());
       ctx.els.importFile.addEventListener("change", async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
         try {
           const text = await file.text();
-          await handleImportText(ctx, text);
+          const data = JSON.parse(text);
+          const projects = Array.isArray(data.projects) ? data.projects : [];
+          const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+          if (projects.length === 0 && tasks.length === 0) throw new Error("文件中没有可导入的数据");
+          ctx.state.projects = projects;
+          ctx.state.tasks = tasks;
+          const theme = ctx.constants.THEMES.includes(data.theme) ? data.theme : "black";
+          ns.actions.applyTheme(ctx, theme);
+          ctx.storage.save("calendar_theme", theme);
+          ns.actions.persist(ctx);
+          ns.actions.populateProjectSelect(ctx);
+          ns.render.renderAll(ctx);
+          alert("导入成功");
+        } catch (err) {
+          console.error(err);
+          alert("导入失败，请确认文件为本工具导出的 JSON。");
         } finally {
           e.target.value = "";
         }
       });
     }
-    if (ctx.els.importDrop) {
-      ["dragenter", "dragover"].forEach((ev) =>
-        ctx.els.importDrop.addEventListener(ev, (e) => {
-          e.preventDefault();
-          ctx.els.importDrop.classList.add("dragover");
-        })
-      );
-      ["dragleave", "drop"].forEach((ev) =>
-        ctx.els.importDrop.addEventListener(ev, (e) => {
-          e.preventDefault();
-          ctx.els.importDrop.classList.remove("dragover");
-        })
-      );
-      ctx.els.importDrop.addEventListener("drop", async (e) => {
-        const file = e.dataTransfer.files?.[0];
-        if (!file) return;
-        const text = await file.text();
-        await handleImportText(ctx, text);
-      });
-      ctx.els.importDrop.addEventListener("click", () => ctx.els.importChoose?.click());
-    }
-    if (ctx.els.importPasteBtn && ctx.els.importText) {
-      ctx.els.importPasteBtn.addEventListener("click", async () => {
-        const text = ctx.els.importText.value.trim();
-        if (!text) {
-          alert("请先粘贴 JSON 内容");
-          return;
-        }
-        await handleImportText(ctx, text);
-      });
-    }
-  }
-
-  async function handleImportText(ctx, text) {
-    try {
-      const data = JSON.parse(text);
-      importData(ctx, data);
-      closeImportModal(ctx);
-      alert("导入成功");
-    } catch (err) {
-      console.error(err);
-      alert("导入失败，请确认文件为本工具导出的 JSON。");
-    }
-  }
-
-  function importData(ctx, data) {
-    const projects = Array.isArray(data.projects) ? data.projects : [];
-    const tasks = Array.isArray(data.tasks) ? data.tasks : [];
-    if (projects.length === 0 && tasks.length === 0) throw new Error("文件中没有可导入的数据");
-    const merge = !!ctx.els.importMerge?.checked;
-    if (merge) {
-      const projMap = new Map();
-      ctx.state.projects.forEach((p) => projMap.set(p.id, p));
-      projects.forEach((p) => projMap.set(p.id, p));
-      ctx.state.projects = [...projMap.values()];
-      const taskMap = new Map();
-      ctx.state.tasks.forEach((t) => taskMap.set(t.id, t));
-      tasks.forEach((t) => taskMap.set(t.id, t));
-      ctx.state.tasks = [...taskMap.values()];
-    } else {
-      ctx.state.projects = projects;
-      ctx.state.tasks = tasks;
-    }
-    const theme = ctx.constants.THEMES.includes(data.theme) ? data.theme : "black";
-    ns.actions.applyTheme(ctx, theme);
-    ctx.storage.save("calendar_theme", theme);
-    if (typeof data.fpdEnabled === "boolean") {
-      ctx.state.fpdEnabled = data.fpdEnabled;
-      if (ctx.els.fpdToggle) ctx.els.fpdToggle.checked = data.fpdEnabled;
-      ns.actions.applyParkinson(ctx, data.fpdEnabled);
-    }
-    ctx.state.tasks.forEach((t) => ns.actions.applyInfiniteIfDone(ctx, t));
-    ns.actions.persist(ctx);
-    ns.actions.populateProjectSelect(ctx);
-    ns.render.renderAll(ctx);
-  }
-
-  function closeImportModal(ctx) {
-    if (ctx.els.importOverlay) ctx.els.importOverlay.hidden = true;
-    if (ctx.els.importText) ctx.els.importText.value = "";
-    if (ctx.els.importFile) ctx.els.importFile.value = "";
-    if (ctx.els.importDrop) ctx.els.importDrop.classList.remove("dragover");
   }
 
   // DnD & reorder helpers
@@ -604,3 +519,4 @@
   ns.bindings.onTaskDragLeave = onTaskDragLeave;
   ns.bindings.onTaskDrop = onTaskDrop;
 })(window.CamenCalendar = window.CamenCalendar || {});
+
