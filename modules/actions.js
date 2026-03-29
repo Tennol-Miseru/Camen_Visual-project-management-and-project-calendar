@@ -3,6 +3,18 @@
 
   ns.actions = ns.actions || {};
 
+  function playSfx(ctx, type) {
+    if (ctx.state.muted) return;
+    const audio = ctx.sfx?.[type];
+    if (!audio) return;
+    try {
+      audio.currentTime = 0;
+      audio.play();
+    } catch (err) {
+      // ignore playback failures
+    }
+  }
+
   function persist(ctx) {
     ctx.storage.save("calendar_tasks", ctx.state.tasks);
     ctx.storage.save("calendar_projects", ctx.state.projects);
@@ -321,4 +333,5 @@
   ns.actions.startEditProject = startEditProject;
   ns.actions.deleteProject = deleteProject;
   ns.actions.showProjectStats = showProjectStats;
+  ns.actions.playSfx = playSfx;
 })(window.CamenCalendar = window.CamenCalendar || {});

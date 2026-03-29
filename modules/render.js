@@ -281,7 +281,8 @@
         const chip = document.createElement("div");
         chip.className = "step-chip";
         chip.dataset.stepId = s.id;
-        chip.innerHTML = `<span class="badge">${idx + 1}</span> ${s.title}`;
+        const badgeColor = p.color || "#5ac8fa";
+        chip.innerHTML = `<span class="badge" style="background:${badgeColor}">${idx + 1}</span> ${s.title}`;
         if (s.done) chip.classList.add("done");
         chip.addEventListener("dblclick", (ev) => {
           ev.stopPropagation();
@@ -308,6 +309,7 @@
           ns.actions.persist(ctx);
           renderProjects(ctx);
           renderAll(ctx);
+          ns.actions.playSfx(ctx, "save");
         });
         chip.appendChild(check);
 
