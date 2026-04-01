@@ -42,7 +42,7 @@
   }
 
   function monthEnd(startStr) {
-    // extend to the end of the next month (跨月末尾)
+    // extend to the end of the next month
     const [y, m] = startStr.split("-").map(Number);
     return toDateStrLocal(new Date(y, m + 1, 0));
   }
@@ -59,8 +59,11 @@
       click: new Audio("sounds/tf2-button-click-release.mp3"),
       save: new Audio("sounds/savepoint.mp3")
     };
-    sfx.click.preload = "auto";
-    sfx.save.preload = "auto";
+    Object.values(sfx).forEach((a) => {
+      a.preload = "auto";
+      a.muted = false;
+      try { a.load(); } catch (_) {}
+    });
 
     const seedProjects = [];
     const seedTasks = [];
@@ -74,12 +77,15 @@
       timelineZoom: storage.load("calendar_timeline_zoom", 1),
       fpdEnabled: storage.load("calendar_fpd", false),
       muted: storage.load("calendar_muted", false),
-      statsProjectId: null
+      statsProjectId: null,
+      editorMode: storage.load("calendar_editor_mode", "modal")
     };
 
     const els = {
       tabs: document.querySelectorAll(".tab"),
       views: document.querySelectorAll(".view"),
+      calendarView: document.getElementById("calendar-view"),
+      projectsView: document.getElementById("projects-view"),
       monthLabel: document.getElementById("month-label"),
       calendarGrid: document.getElementById("calendar-grid"),
       timelineGrid: document.getElementById("timeline-grid"),
@@ -100,6 +106,9 @@
       addStepBtn: document.getElementById("add-step"),
       projectColor: document.getElementById("project-color"),
       themeSelect: document.getElementById("theme-select"),
+      editorModeToggle: document.getElementById("editor-mode-toggle"),
+      openTaskEditor: document.getElementById("open-task-editor"),
+      openProjectEditor: document.getElementById("open-project-editor"),
       importBtn: document.getElementById("import-btn"),
       exportBtn: document.getElementById("export-btn"),
       importFile: document.getElementById("import-file"),
@@ -122,6 +131,9 @@
       startDate: document.getElementById("start-date"),
       endDate: document.getElementById("end-date"),
       draftList: document.getElementById("draft-list"),
+      draftBox: document.getElementById("draft-box"),
+      archivedList: document.getElementById("archived-list"),
+      archivedBox: document.getElementById("archived-box"),
       projectDraft: document.getElementById("project-draft"),
       toast: document.getElementById("toast"),
       statsContent: document.getElementById("stats-content"),
@@ -130,15 +142,25 @@
       statsOverlay: document.getElementById("stats-overlay"),
       statsClose: document.getElementById("stats-close"),
       statsOverviewBtn: document.getElementById("stats-overview-btn"),
-      themeCycleBtn: document.getElementById("theme-cycle-btn")
+      themeCycleBtn: document.getElementById("theme-cycle-btn"),
+      editorOverlay: document.getElementById("editor-overlay"),
+      editorModalTitle: document.getElementById("editor-modal-title"),
+      editorModalBody: document.getElementById("editor-modal-body"),
+      editorVisibilityToggle: document.getElementById("editor-visibility-toggle"),
+      editorClose: document.getElementById("editor-close")
     };
 
     const ui = {
       projectFormLegend: document.querySelector("#projects-view summary"),
       projectIdInput: document.getElementById("project-id"),
-      taskDetails: document.querySelector("#calendar-view details"),
+      taskDetails: document.getElementById("task-editor-panel"),
+      taskDetailsSummary: document.querySelector("#task-editor-panel summary"),
+      taskEditorSlot: document.getElementById("task-editor-slot"),
       projectSubmit: document.querySelector("#project-form button[type='submit']"),
-      taskSubmit: document.querySelector("#task-form button[type='submit']")
+      taskSubmit: document.querySelector("#task-form button[type='submit']"),
+      projectDetails: document.getElementById("project-editor-panel"),
+      projectDetailsSummary: document.querySelector("#project-editor-panel summary"),
+      projectEditorSlot: document.getElementById("project-editor-slot")
     };
 
     const constants = {
@@ -152,10 +174,14 @@
     const runtime = {
       stepDraft: [],
       editingTaskId: null,
+      editingProjectId: null,
       draggingTaskId: null,
       toastTimer: null,
       isMobile: false,
-      sfxPrimed: false
+      sfxPrimed: false,
+      currentEditorType: null,
+      editorContentVisible: true,
+      shredTimer: null
     };
 
     return { storage, uuid, state, els, ui, constants, runtime, sfx };

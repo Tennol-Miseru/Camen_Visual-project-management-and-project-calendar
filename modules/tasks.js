@@ -1,10 +1,17 @@
-(function (ns) {
+﻿(function (ns) {
   "use strict";
 
   ns.tasks = ns.tasks || {};
 
   function visibleTasks(ctx) {
     let list = ctx.state.tasks.slice();
+    // 隐藏已归档或草稿工程的日期条
+    list = list.filter((t) => {
+      if (!t.projectId) return true;
+      const proj = ctx.state.projects.find((p) => p.id === t.projectId);
+      if (!proj) return true;
+      return !proj.archived && !proj.draft;
+    });
     if (ctx.state.filterProjectId) list = list.filter((t) => t.projectId === ctx.state.filterProjectId);
     if (ctx.state.filterStepId) list = list.filter((t) => t.stepId === ctx.state.filterStepId);
     list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -125,4 +132,3 @@
   ns.tasks.calcProjectProgress = calcProjectProgress;
   ns.tasks.calcProjectWeightedProgress = calcProjectWeightedProgress;
 })(window.CamenCalendar = window.CamenCalendar || {});
-

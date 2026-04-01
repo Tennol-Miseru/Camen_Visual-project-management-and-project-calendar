@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div>
-      <div class="eyebrow">工程可视化</div>
+      <div class="eyebrow">工程可视区</div>
       <h1>工程日历</h1>
     </div>
     <div class="header-actions">
@@ -29,6 +29,7 @@
           <option value="gray">灰暗</option>
         </select>
       </label>
+      <button type="button" class="pill" id="editor-mode-toggle" title="切换编辑模式">编辑方式: 弹窗</button>
       <div class="pill desktop-only">本地数据 · 自动保存</div>
     </div>
   </header>
@@ -42,12 +43,16 @@
     <section id="calendar-view" class="view active">
       <div class="toolbar">
         <div class="month-nav">
-          <button id="prev-month" aria-label="上一月">←</button>
+          <button id="prev-month" aria-label="上一月">&#8592;</button>
           <div id="month-label" class="month-label"></div>
-          <button id="next-month" aria-label="下一月">→</button>
+          <button id="next-month" aria-label="下一月">&#8594;</button>
         </div>
         <div class="toolbar-right">
           <div id="legend" class="legend"></div>
+          <button type="button" class="floating-btn editor-launch" id="open-task-editor">
+            <span class="floating-btn-icon">+</span>
+            <span>新建日期条</span>
+          </button>
           <select id="project-filter" class="select-ghost">
             <option value="">全部工程</option>
           </select>
@@ -57,6 +62,113 @@
 
       <div id="calendar-grid" class="calendar-grid"></div>
 
+      <div id="task-editor-slot">
+        <details class="panel" id="task-editor-panel">
+          <summary>添加 / 编辑日期条</summary>
+          <div class="form-switch">
+            <span class="muted">模式切换</span>
+            <button type="button" class="btn-ghost" id="task-new-btn">切换到新建</button>
+          </div>
+          <form id="task-form" class="form-grid">
+            <input type="hidden" name="taskId" id="task-id">
+            <label>标题
+              <input required name="title" placeholder="如：方案评审">
+            </label>
+            <label>颜色
+              <input required name="color" type="color" value="#00bfa6">
+              <label class="inline">
+                <input type="checkbox" id="use-project-color"> 使用工程色
+              </label>
+            </label>
+            <label>开始日期
+              <input required name="start" type="date" id="start-date">
+            </label>
+            <label>结束日期
+              <input required name="end" type="date" id="end-date">
+              <label class="inline">
+                <input type="checkbox" id="no-end"> 不限时，自动延申至下月末
+              </label>
+            </label>
+            <label>所属工程
+              <select name="projectId" id="project-select"></select>
+            </label>
+            <label>工程步骤
+              <select name="stepId" id="step-select">
+                <option value="">（先选工程）</option>
+              </select>
+            </label>
+            <label>备注
+              <input name="note" placeholder="可选">
+            </label>
+            <label class="inline">
+              <input type="checkbox" id="task-done" name="done"> 标记完成（无工程/步骤也可勾选）
+            </label>
+            <div class="form-actions">
+              <button type="submit">保存日期条</button>
+              <button type="button" class="btn-ghost" id="delete-task">删除当前</button>
+            </div>
+          </form>
+        </details>
+      </div>
+    </section>
+
+    <section id="projects-view" class="view">
+      <div class="panel">
+        <div class="card-head">
+          <h2>工程列表</h2>
+          <div class="card-actions">
+            <button type="button" class="floating-btn editor-launch" id="open-project-editor">
+              <span class="floating-btn-icon">+</span>
+              <span>新建工程</span>
+            </button>
+            <button type="button" class="btn-ghost" id="stats-overview-btn">工程统计</button>
+          </div>
+        </div>
+        <div id="projects-list" class="project-list"></div>
+      </div>
+
+      <div id="project-editor-slot">
+        <details class="panel" id="project-editor-panel">
+          <summary>新增工程</summary>
+          <div class="form-switch">
+            <span class="muted">模式切换</span>
+            <button type="button" class="btn-ghost" id="project-new-btn">切换到新建</button>
+          </div>
+          <form id="project-form" class="form-grid">
+            <input type="hidden" name="projectId" id="project-id">
+            <label>工程名称
+              <input required name="name" placeholder="如：移动端重构">
+            </label>
+            <label>简介
+              <input name="description" placeholder="一句话说明">
+            </label>
+            <label>工程颜色
+              <input type="color" name="projectColor" id="project-color" value="#00bfa6">
+            </label>
+            <label>步骤
+              <div class="step-list" id="step-list"></div>
+              <button type="button" class="btn-ghost" id="add-step">+ 添加步骤</button>
+            </label>
+            <label class="inline">
+              <input type="checkbox" id="project-draft" name="draft"> 保存为草稿（不在主列表显示）
+            </label>
+            <button type="submit">创建工程</button>
+          </form>
+        </details>
+      </div>
+
+      <div class="panel" id="archived-box">
+        <h3>已归档工程</h3>
+        <div id="archived-list" class="project-list"></div>
+      </div>
+
+      <div class="panel" id="draft-box">
+        <h3>草稿箱</h3>
+        <div id="draft-list" class="project-list"></div>
+      </div>
+    </section>
+
+    <section id="timeline-section" class="timeline-section">
       <div class="timeline-wrapper">
         <div class="timeline-header" id="timeline-header"></div>
         <div class="timeline-controls">
@@ -67,105 +179,15 @@
         </div>
         <div id="timeline-grid" class="timeline-grid"></div>
       </div>
-
-      <details class="panel">
-        <summary>添加 / 编辑日期条</summary>
-        <div class="form-switch">
-          <span class="muted">模式切换</span>
-          <button type="button" class="btn-ghost" id="task-new-btn">切换到新建</button>
-        </div>
-        <form id="task-form" class="form-grid">
-          <input type="hidden" name="taskId" id="task-id">
-          <label>标题
-            <input required name="title" placeholder="如：方案评审">
-          </label>
-          <label>颜色
-            <input required name="color" type="color" value="#00bfa6">
-            <label class="inline">
-              <input type="checkbox" id="use-project-color"> 使用工程色
-            </label>
-          </label>
-          <label>开始日期
-            <input required name="start" type="date" id="start-date">
-          </label>
-          <label>结束日期
-            <input required name="end" type="date" id="end-date">
-            <label class="inline">
-              <input type="checkbox" id="no-end"> 不限时（自动延申至下月末）
-            </label>
-          </label>
-          <label>所属工程
-            <select name="projectId" id="project-select"></select>
-          </label>
-          <label>工程步骤
-            <select name="stepId" id="step-select">
-              <option value="">（先选工程）</option>
-            </select>
-          </label>
-          <label>备注
-            <input name="note" placeholder="可选">
-          </label>
-          <label class="inline">
-            <input type="checkbox" id="task-done" name="done"> 标记完成（无工程/步骤也可勾选）
-          </label>
-          <div class="form-actions">
-            <button type="submit">保存日期条</button>
-            <button type="button" class="btn-ghost" id="delete-task">删除当前</button>
-          </div>
-        </form>
-      </details>
-    </section>
-
-    <section id="projects-view" class="view">
-      <div class="panel">
-        <div class="card-head">
-          <h2>工程列表</h2>
-          <button type="button" class="btn-ghost" id="stats-overview-btn">总览统计</button>
-        </div>
-        <div id="projects-list" class="project-list"></div>
-      </div>
-
-      <details class="panel">
-        <summary>新增工程</summary>
-        <div class="form-switch">
-          <span class="muted">模式切换</span>
-          <button type="button" class="btn-ghost" id="project-new-btn">切换到新建</button>
-        </div>
-        <form id="project-form" class="form-grid">
-          <input type="hidden" name="projectId" id="project-id">
-          <label>工程名称
-            <input required name="name" placeholder="如：移动端重构">
-          </label>
-          <label>简介
-            <input name="description" placeholder="一句话说明">
-          </label>
-          <label>工程颜色
-            <input type="color" name="projectColor" id="project-color" value="#00bfa6">
-          </label>
-          <label>步骤
-            <div class="step-list" id="step-list"></div>
-            <button type="button" class="btn-ghost" id="add-step">＋ 添加步骤</button>
-          </label>
-          <label class="inline">
-            <input type="checkbox" id="project-draft" name="draft"> 保存为草稿（不在主列表显示）
-          </label>
-          <button type="submit">创建工程</button>
-        </form>
-      </details>
-
-      <div class="panel" id="draft-box">
-        <h3>草稿箱</h3>
-        <div id="draft-list" class="project-list"></div>
-      </div>
     </section>
   </main>
 
   <div id="stats-overlay" class="overlay" hidden>
     <div class="overlay-inner">
       <div class="stats-toolbar">
-        <button type="button" class="btn-ghost" id="stats-back" hidden>← 返回总览</button>
+        <button type="button" class="btn-ghost" id="stats-back" hidden>&#8592; 返回总览</button>
         <h2 id="stats-title">工程统计总览</h2>
-        <button type="button" class="btn-ghost" id="stats-close" style="margin-left:auto">✕ 关闭</button>
+        <button type="button" class="btn-ghost" id="stats-close" style="margin-left:auto">&#10005; 关闭</button>
       </div>
       <div id="stats-content"></div>
     </div>
@@ -175,33 +197,36 @@
     <div class="task-chip"><span class="dot"></span><span class="text"></span></div>
   </template>
 
-  <div class="panel footer">
-    <div class="footer-left">
-      <strong>日历模式</strong>
+  <div class="floating-controls">
+    <div class="floating-card" id="calendar-mode-card">
+      <div class="floating-card-icon">📅</div>
+      <div class="floating-card-content">
+        <div class="floating-card-title">日历模式</div>
+        <div class="floating-card-actions">
+          <label class="pill-mini">
+            <input type="checkbox" id="fpd-toggle" title="将所有日期条持续时间减半">
+            <span>防帕金森</span>
+          </label>
+          <label class="pill-mini">
+            <input type="checkbox" id="mute-toggle" title="关闭或开启音效提示">
+            <span>静音</span>
+          </label>
+        </div>
+      </div>
     </div>
-    <div class="footer-actions">
-      <label class="pill">
-        防帕金森
-        <input type="checkbox" id="fpd-toggle" title="将所有日期条持续时间减半">
-      </label>
-      <label class="pill">
-        静音
-        <input type="checkbox" id="mute-toggle" title="关闭/开启音效提示">
-      </label>
+    <div class="floating-card" id="data-card">
+      <div class="floating-card-icon">💾</div>
+      <div class="floating-card-content">
+        <div class="floating-card-title">数据</div>
+        <div class="floating-card-actions">
+          <button type="button" class="btn-mini" id="import-btn">导入</button>
+          <button type="button" class="btn-mini" id="export-btn">导出</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <footer class="panel footer">
-    <div class="footer-left">
-      <strong>数据导入 / 导出</strong>
-      <span class="muted">文件格式：JSON，含工程、步骤、日期条、主题、防帕金森设置</span>
-    </div>
-    <div class="footer-actions">
-      <input type="file" id="import-file" accept="application/json" hidden>
-      <button type="button" class="btn-ghost" id="import-btn">导入</button>
-      <button type="button" id="export-btn">导出为 JSON</button>
-    </div>
-  </footer>
+  <input type="file" id="import-file" accept="application/json" hidden>
 
   <div id="import-overlay" class="modal-overlay" hidden>
     <div class="modal">
@@ -212,24 +237,36 @@
       <div class="import-grid">
         <div class="import-row">
           <div id="import-drop" class="drop-zone" aria-label="拖拽文件到此处，或点击选择">
-            <p>拖拽 JSON 文件到这里，或点击选择</p>
+            <p>拖拽 JSON 文件到此处，或点击选择</p>
             <button type="button" class="btn-ghost" id="import-choose">选择文件</button>
           </div>
           <label class="pill">
-            并入现有数据
+            合并已有数据
             <input type="checkbox" id="import-merge">
           </label>
         </div>
         <div class="paste-box">
-          <p class="muted">或粘贴 JSON 内容后导入</p>
-          <textarea id="import-text" rows="8" placeholder="粘贴 JSON 内容"></textarea>
-          <button type="button" id="import-paste-btn">从粘贴导入</button>
+          <p class="muted">粘贴 JSON 数据到此区域</p>
+          <textarea id="import-text" rows="8" placeholder="粘贴 JSON 数据"></textarea>
+          <button type="button" id="import-paste-btn">粘贴数据</button>
         </div>
       </div>
     </div>
   </div>
 
+  <div id="editor-overlay" class="modal-overlay editor-overlay" hidden>
+    <div class="modal editor-modal-shell">
+      <div class="modal-head">
+        <h3 id="editor-modal-title">编辑</h3>
+        <button type="button" class="btn-ghost" id="editor-visibility-toggle" aria-label="切换编辑器显示">&#128065;</button>
+        <button type="button" class="btn-ghost modal-close" id="editor-close">关闭</button>
+      </div>
+      <div id="editor-modal-body"></div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
   <script src="modules/core.js"></script>
   <script src="modules/tasks.js"></script>
   <script src="modules/actions.js"></script>

@@ -3,36 +3,21 @@
 
   ns.actions = ns.actions || {};
 
-  // Pre-unlocks audio so browsers with autoplay restrictions will allow later playback
-  function primeSfx(ctx) {
-    if (ctx.runtime.sfxPrimed) return;
-    const warm = () => {
-      ctx.runtime.sfxPrimed = true;
-      document.removeEventListener("pointerdown", warm);
-      document.removeEventListener("keydown", warm);
-      Object.values(ctx.sfx || {}).forEach((audio) => {
-        try {
-          audio.muted = true;
-          audio.currentTime = 0;
-          const p = audio.play();
-          if (p && typeof p.finally === "function") {
-            p.finally(() => {
-              audio.pause();
-              audio.currentTime = 0;
-              audio.muted = false;
-            });
-          } else {
-            audio.pause();
-            audio.currentTime = 0;
-            audio.muted = false;
-          }
-        } catch (err) {
-          console.warn("[sfx] warmup failed", err);
-        }
-      });
-    };
-    document.addEventListener("pointerdown", warm, { once: true });
-    document.addEventListener("keydown", warm, { once: true });
+  const SHRED_DURATION = 720;
+
+  function playSfx(ctx, type) {
+    if (ctx.state.muted) return;
+    const audio = ctx.sfx?.[type];
+    if (!audio) return;
+    try {
+      // clone to avoid play lock when rapidly triggered
+      const inst = audio.cloneNode();
+      inst.muted = false;
+      inst.currentTime = 0;
+      inst.play().catch(() => {});
+    } catch (err) {
+      // ignore playback failures
+    }
   }
 
   function persist(ctx) {
@@ -48,21 +33,49 @@
     ctx.runtime.toastTimer = setTimeout(() => ctx.els.toast.classList.remove("show"), 1800);
   }
 
-  function playSfx(ctx, type) {
-    if (ctx.state.muted) return;
-    const audio = ctx.sfx?.[type];
-    if (!audio) return;
-    try {
-      audio.currentTime = 0;
-      const p = audio.play();
-      if (p && typeof p.catch === "function") p.catch((err) => console.warn("[sfx] play failed:", type, err?.name || err));
-    } catch (err) {
-      console.warn("[sfx] play threw:", type, err);
-    }
-  }
-
   function applyTheme(ctx, name) {
     document.body.dataset.theme = name;
+  }
+
+  function shredRelatedTasks(ctx, projectId) {
+    const selectors = [
+      `.task-chip[data-project-id="${projectId}"]`,
+      `.task-bar[data-project-id="${projectId}"]`
+    ];
+    const nodes = document.querySelectorAll(selectors.join(","));
+    nodes.forEach((node, idx) => {
+      node.classList.add("shred-out");
+      node.style.setProperty("--shred-delay", `${idx * 18}ms`);
+    });
+    return nodes.length;
+  }
+
+  function archiveProject(ctx, projectId, options = {}) {
+    const project = ctx.state.projects.find((p) => p.id === projectId);
+    if (!project || project.archived) return false;
+    project.archived = true;
+    project.archivedAt = new Date().toISOString();
+    if (ctx.state.filterProjectId === projectId) ctx.state.filterProjectId = "";
+    if (ctx.state.filterStepId && !project.steps.some((s) => s.id === ctx.state.filterStepId)) ctx.state.filterStepId = null;
+    if (ctx.state.statsProjectId === projectId) ctx.state.statsProjectId = null;
+    persist(ctx);
+    const affected = shredRelatedTasks(ctx, projectId);
+    showToast(ctx, options.toast || `${project.name} 已收纳至归档`);
+    if (ctx.runtime.shredTimer) clearTimeout(ctx.runtime.shredTimer);
+    if (affected > 0) {
+      ctx.runtime.shredTimer = setTimeout(() => ns.render.renderAll(ctx), SHRED_DURATION);
+    } else {
+      ns.render.renderAll(ctx);
+    }
+    return true;
+  }
+
+  function autoArchiveIfComplete(ctx, project) {
+    if (!project || project.archived || project.draft) return false;
+    if (!project.steps.length) return false;
+    const done = project.steps.every((s) => s.done);
+    if (!done) return false;
+    return archiveProject(ctx, project.id, { toast: `${project.name} 全部工序完成，已归档` });
   }
 
   function initTheme(ctx) {
@@ -96,6 +109,20 @@
     document.documentElement.style.setProperty("--dual-right", `${right}%`);
   }
 
+  function applyEditorMode(ctx, mode) {
+    const nextMode = mode === "modal" ? "modal" : "split";
+    ctx.state.editorMode = nextMode;
+    ctx.storage.save("calendar_editor_mode", nextMode);
+    if (ctx.els.editorModeToggle) ctx.els.editorModeToggle.textContent = `编辑方式: ${nextMode === "modal" ? "弹窗" : "分屏"}`;
+
+    if (nextMode !== "modal") {
+      if (ctx.els.editorOverlay) ctx.els.editorOverlay.hidden = true;
+    }
+
+    document.body.classList.toggle("editor-modal-mode", nextMode === "modal");
+    ns.render.renderAll(ctx);
+  }
+
   function getProjectName(ctx, projectId) {
     return ctx.state.projects.find((p) => p.id === projectId)?.name || "";
   }
@@ -120,18 +147,6 @@
     persist(ctx);
   }
 
-  function applyInfiniteIfDone(ctx, task) {
-    if (!task || !task.noEnd) return;
-    const done = ns.tasks.isTaskDone ? ns.tasks.isTaskDone(ctx, task) : Boolean(task.done);
-    if (done) {
-      if (!task.infiniteEnd) task.infiniteEnd = task.end;
-      task.end = task.start;
-    } else if (task.infiniteEnd) {
-      task.end = task.infiniteEnd;
-      delete task.infiniteEnd;
-    }
-  }
-
   function changeMonth(ctx, delta) {
     const d = new Date(ctx.state.viewDate);
     d.setMonth(d.getMonth() + delta);
@@ -143,7 +158,7 @@
   function populateProjectSelect(ctx) {
     ctx.els.projectSelect.innerHTML = `<option value="">（可选）</option>`;
     ctx.state.projects
-      .filter((p) => !p.draft)
+      .filter((p) => !p.draft && !p.archived)
       .forEach((p) => {
         const opt = document.createElement("option");
         opt.value = p.id;
@@ -157,7 +172,7 @@
     const current = ctx.els.projectFilter.value;
     ctx.els.projectFilter.innerHTML = `<option value="">全部工程</option>`;
     ctx.state.projects
-      .filter((p) => !p.draft)
+      .filter((p) => !p.draft && !p.archived)
       .forEach((p) => {
         const opt = document.createElement("option");
         opt.value = p.id;
@@ -231,7 +246,7 @@
     if (ctx.runtime.stepDraft.length === 0) {
       const hint = document.createElement("div");
       hint.style.color = "var(--muted)";
-      hint.textContent = "暂无步骤，点击下方“＋ 添加步骤”";
+      hint.textContent = "暂无步骤，点下面“+ 添加步骤”";
       ctx.els.stepList.appendChild(hint);
       return;
     }
@@ -244,7 +259,7 @@
 
       const handle = document.createElement("div");
       handle.className = "drag-handle";
-      handle.textContent = "↕";
+      handle.textContent = "≡";
       handle.draggable = true;
       handle.addEventListener("dragstart", (e) => ns.bindings.onStepDragStart(ctx, e, idx));
       handle.addEventListener("dragover", (e) => ns.bindings.onStepDragOver(ctx, e));
@@ -303,6 +318,10 @@
 
   function startEditTask(ctx, task) {
     ctx.runtime.editingTaskId = task.id;
+    if (ctx.state.editorMode === "modal" && ns.bindings?.openTaskEditorModal) {
+      ns.bindings.openTaskEditorModal(ctx, task);
+      return;
+    }
     if (ctx.els.taskIdInput) ctx.els.taskIdInput.value = task.id;
     ctx.els.taskForm.title.value = task.title;
     ctx.els.taskForm.color.value = task.color;
@@ -325,10 +344,13 @@
     if (submitBtn) submitBtn.textContent = "更新日期条";
     if (ctx.els.deleteTaskBtn) ctx.els.deleteTaskBtn.disabled = false;
     document.querySelector('[data-target="calendar-view"]').click();
-    playSfx(ctx, "click");
   }
-
   function startEditProject(ctx, project) {
+    ctx.runtime.editingProjectId = project.id;
+    if (ctx.state.editorMode === "modal" && ns.bindings?.openProjectEditorModal) {
+      ns.bindings.openProjectEditorModal(ctx, project);
+      return;
+    }
     ctx.ui.projectIdInput.value = project.id;
     ctx.els.projectForm.name.value = project.name;
     ctx.els.projectForm.description.value = project.description || "";
@@ -341,9 +363,7 @@
     const formDetails = document.querySelector("#projects-view details");
     if (formDetails) formDetails.open = true;
     document.querySelector('[data-target="projects-view"]').click();
-    playSfx(ctx, "click");
   }
-
   function deleteProject(ctx, projectId) {
     if (!confirm("删除工程会同时移除关联的日期条，确定吗？")) return;
     ctx.state.projects = ctx.state.projects.filter((p) => p.id !== projectId);
@@ -365,10 +385,10 @@
   ns.actions.applyTheme = applyTheme;
   ns.actions.initTheme = initTheme;
   ns.actions.applyRatio = applyRatio;
+  ns.actions.applyEditorMode = applyEditorMode;
   ns.actions.getProjectName = getProjectName;
   ns.actions.getProjectColor = getProjectColor;
   ns.actions.applyParkinson = applyParkinson;
-  ns.actions.applyInfiniteIfDone = applyInfiniteIfDone;
   ns.actions.changeMonth = changeMonth;
   ns.actions.populateProjectSelect = populateProjectSelect;
   ns.actions.populateProjectFilter = populateProjectFilter;
@@ -381,6 +401,13 @@
   ns.actions.startEditProject = startEditProject;
   ns.actions.deleteProject = deleteProject;
   ns.actions.showProjectStats = showProjectStats;
+  ns.actions.archiveProject = archiveProject;
+  ns.actions.autoArchiveIfComplete = autoArchiveIfComplete;
   ns.actions.playSfx = playSfx;
-  ns.actions.primeSfx = primeSfx;
 })(window.CamenCalendar = window.CamenCalendar || {});
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-(function (ns) {
+﻿(function (ns) {
   "use strict";
 
   ns.touch = ns.touch || {};

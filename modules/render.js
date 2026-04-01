@@ -3,6 +3,12 @@
 
   ns.render = ns.render || {};
 
+  function getProjectColumnCount(containerWidth) {
+    if (!containerWidth) return 1;
+    if (containerWidth >= 720) return 3;
+    if (containerWidth >= 420) return 2;
+    return 1;
+  }
   function renderAll(ctx) {
     ns.actions.populateProjectSelect(ctx);
     ns.actions.populateProjectFilter(ctx);
@@ -11,14 +17,16 @@
     renderCalendar(ctx);
     renderTimeline(ctx);
     renderProjects(ctx);
+    renderArchived(ctx);
     renderDrafts(ctx);
+    if (ns.bindings?.syncDualColumnHeights) ns.bindings.syncDualColumnHeights(ctx);
   }
 
   function renderLegend(ctx) {
     ctx.els.legend.innerHTML = "";
     const fragment = document.createDocumentFragment();
     const items = ctx.state.projects
-      .filter((p) => !p.draft)
+      .filter((p) => !p.draft && !p.archived)
       .map((p) => {
         const task = ctx.state.tasks.find((t) => t.projectId === p.id && t.color);
         return { label: p.name, color: p.color || task?.color || "#94a3b8" };
@@ -57,7 +65,7 @@
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const startOffset = firstDay.getDay();
     const todayStr = ns.core.toDateStrLocal(new Date());
-    ctx.els.monthLabel.textContent = `${year}年 ${month + 1}月`;
+    ctx.els.monthLabel.textContent = `${year}年${month + 1}月`;
     ctx.els.calendarGrid.innerHTML = "";
 
     const weekdayNames = ["日", "一", "二", "三", "四", "五", "六"];
@@ -112,6 +120,7 @@
     node.setAttribute("data-project", projLabel);
     node.draggable = true;
     node.dataset.taskId = task.id;
+    node.dataset.projectId = task.projectId || "";
     node.addEventListener("dragstart", (e) => ns.bindings.onChipDragStart(ctx, e));
     node.addEventListener("dragover", (e) => ns.bindings.onChipDragOver(ctx, e));
     node.addEventListener("dragleave", (e) => ns.bindings.onChipDragLeave(ctx, e));
@@ -172,7 +181,7 @@
     const lanes = ns.tasks.packTasks(ctx, tasks);
     ctx.els.timelineGrid.innerHTML = "";
     if (tasks.length === 0) {
-      ctx.els.timelineGrid.textContent = "本月暂无日期条。";
+      ctx.els.timelineGrid.textContent = "本月暂无日期条";
       return;
     }
 
@@ -185,6 +194,7 @@
         bar.className = "task-bar";
         bar.draggable = true;
         bar.dataset.taskId = task.id;
+        bar.dataset.projectId = task.projectId || "";
         if (ns.tasks.isTaskDone(ctx, task)) bar.classList.add("done");
         bar.style.background = task.color;
         bar.style.gridColumn = `${ns.tasks.clampToMonth(ctx, task.start, year, month)} / ${
@@ -227,13 +237,25 @@
 
   function renderProjects(ctx) {
     ctx.els.projectsList.innerHTML = "";
-    const list = ctx.state.projects.filter((p) => !p.draft);
+    const list = ctx.state.projects.filter((p) => !p.draft && !p.archived);
     if (list.length === 0) {
-      ctx.els.projectsList.textContent = "暂无工程，先添加一个吧。";
+      ctx.els.projectsList.textContent = "暂无工程，先添加一个吧";
       return;
     }
 
-    list.forEach((p) => {
+    const parentWidth = ctx.els.projectsList.parentElement?.clientWidth || ctx.els.projectsList.clientWidth;
+    const columnCount = getProjectColumnCount(parentWidth);
+    const columnsWrap = document.createElement("div");
+    columnsWrap.className = "projects-columns";
+    columnsWrap.style.setProperty("--project-column-count", String(columnCount));
+    const columns = Array.from({ length: columnCount }, () => {
+      const column = document.createElement("div");
+      column.className = "project-column";
+      columnsWrap.appendChild(column);
+      return column;
+    });
+
+    list.forEach((p, idx) => {
       const card = document.createElement("div");
       card.className = "project-card";
       const head = document.createElement("div");
@@ -277,18 +299,17 @@
 
       const stepsBox = document.createElement("div");
       stepsBox.className = "project-steps";
-      p.steps.forEach((s, idx) => {
+      p.steps.forEach((s, stepIdx) => {
         const chip = document.createElement("div");
         chip.className = "step-chip";
         chip.dataset.stepId = s.id;
         const badgeColor = p.color || "#5ac8fa";
-        chip.innerHTML = `<span class="badge" style="background:${badgeColor}">${idx + 1}</span> ${s.title}`;
+        chip.innerHTML = `<span class="badge" style="background:${badgeColor}">${stepIdx + 1}</span> ${s.title}`;
         if (s.done) chip.classList.add("done");
         chip.addEventListener("dblclick", (ev) => {
           ev.stopPropagation();
           ns.actions.startEditProject(ctx, p);
         });
-        // Long-press as dblclick alternative on touch
         if (ns.touch && ns.touch.isTouchDevice()) {
           ns.touch.enableLongPress(chip, function () {
             ns.actions.startEditProject(ctx, p);
@@ -298,22 +319,22 @@
         const check = document.createElement("input");
         check.type = "checkbox";
         check.checked = Boolean(s.done);
-        check.title = "标记步骤已完成";
+        check.title = "标记该步骤完成";
         check.addEventListener("click", (ev) => {
           ev.stopPropagation();
           s.done = !s.done;
           ns.actions.playSfx(ctx, "save");
-          // 同步：将步骤完成状态同步到所有绑定该步骤的日期条
           ctx.state.tasks.forEach((t) => {
             if (t.projectId === p.id && t.stepId === s.id) t.done = s.done;
-            if (t.projectId === p.id && t.stepId === s.id) ns.actions.applyInfiniteIfDone(ctx, t);
           });
           ns.actions.persist(ctx);
-          renderProjects(ctx);
-          renderAll(ctx);
+          const archived = ns.actions.autoArchiveIfComplete(ctx, p);
+          if (!archived) {
+            renderProjects(ctx);
+            renderAll(ctx);
+          }
         });
         chip.appendChild(check);
-
         stepsBox.appendChild(chip);
       });
 
@@ -326,10 +347,59 @@
       card.appendChild(desc);
       card.appendChild(stepsBox);
       card.appendChild(related);
-      ctx.els.projectsList.appendChild(card);
+      columns[idx % columnCount].appendChild(card);
     });
+
+    ctx.els.projectsList.appendChild(columnsWrap);
   }
 
+  function renderArchived(ctx) {
+    if (!ctx.els.archivedList) return;
+    ctx.els.archivedList.innerHTML = "";
+    const archived = ctx.state.projects.filter((p) => p.archived);
+    if (archived.length === 0) {
+      ctx.els.archivedList.textContent = "暂无已归档工程";
+      return;
+    }
+    archived.forEach((p) => {
+      const card = document.createElement("div");
+      card.className = "project-card archived";
+      const title = document.createElement("h3");
+      title.textContent = p.name || "未命名工程";
+      const meta = document.createElement("div");
+      meta.className = "archived-meta";
+      const archivedDate = p.archivedAt ? new Date(p.archivedAt) : new Date();
+      meta.textContent = `收纳于 ${ns.core.toDateStrLocal(archivedDate)} · 步骤 ${p.steps.length}`;
+      const desc = document.createElement("div");
+      desc.textContent = p.description || "（无简介）";
+      const stats = document.createElement("div");
+      stats.style.color = "var(--muted)";
+      const taskCount = ctx.state.tasks.filter((t) => t.projectId === p.id).length;
+      const progress = ns.tasks.calcProjectProgress(ctx, p);
+      stats.textContent = `日期条 ${taskCount} · 完成率 ${progress}%`;
+      const actions = document.createElement("div");
+      actions.style.display = "flex";
+      actions.style.gap = "8px";
+      actions.style.flexWrap = "wrap";
+      const restore = document.createElement("button");
+      restore.className = "btn-ghost";
+      restore.textContent = "移回列表";
+      restore.addEventListener("click", () => {
+        p.archived = false;
+        p.archivedAt = null;
+        ns.actions.persist(ctx);
+        ns.render.renderAll(ctx);
+        ns.actions.showToast(ctx, `${p.name} 已移出归档`);
+      });
+      actions.appendChild(restore);
+      card.appendChild(title);
+      card.appendChild(meta);
+      card.appendChild(desc);
+      card.appendChild(stats);
+      card.appendChild(actions);
+      ctx.els.archivedList.appendChild(card);
+    });
+  }
   function renderDrafts(ctx) {
     if (!ctx.els.draftList) return;
     ctx.els.draftList.innerHTML = "";
@@ -342,10 +412,16 @@
       const card = document.createElement("div");
       card.className = "project-card";
       const title = document.createElement("h3");
-      title.textContent = p.name || "未命名";
+      title.textContent = p.name || "未命名工程";
       const actions = document.createElement("div");
       actions.style.display = "flex";
       actions.style.gap = "8px";
+      actions.style.flexWrap = "wrap";
+
+      const edit = document.createElement("button");
+      edit.className = "btn-ghost";
+      edit.textContent = "编辑鑽夌";
+      edit.addEventListener("click", () => ns.actions.startEditProject(ctx, p));
 
       const publish = document.createElement("button");
       publish.className = "btn-ghost";
@@ -367,13 +443,13 @@
       });
 
       card.appendChild(title);
+      actions.appendChild(edit);
       actions.appendChild(publish);
       actions.appendChild(remove);
       card.appendChild(actions);
       ctx.els.draftList.appendChild(card);
     });
   }
-
   function renderStats(ctx) {
     if (ctx.state.statsProjectId) {
       const project = ctx.state.projects.find((p) => p.id === ctx.state.statsProjectId);
@@ -389,7 +465,7 @@
   }
 
   function renderProjectStats(ctx, project) {
-    ctx.els.statsTitle.textContent = `${project.name} — 统计`;
+    ctx.els.statsTitle.textContent = `${project.name} - 统计`;
     ctx.els.statsBack.hidden = false;
     ctx.els.statsBack.onclick = () => {
       ctx.state.statsProjectId = null;
@@ -417,22 +493,18 @@
 
     // Key metrics
     html += `<div class="stats-grid">`;
-    html += `<div class="stat-card"><h3>工程进度（等分）</h3>
-      <div class="progress-bar"><div class="progress-fill" style="width:${progress}%;background:${
-      project.color || "var(--accent)"
-    }"></div></div>
+    html += `<div class="stat-card"><h3>工程进度（均分）</h3>
+      <div class="progress-bar"><div class="progress-fill" style="width:${progress}%;background:${project.color || "var(--accent)"}"></div></div>
       <div class="progress-label"><span>${doneSteps} / ${project.steps.length} 步骤完成</span><span>${progress}%</span></div></div>`;
     html += `<div class="stat-card"><h3>工程进度（加权）</h3>
-      <div class="progress-bar"><div class="progress-fill" style="width:${weightedProgress}%;background:${
-      project.color || "var(--accent)"
-    }"></div></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${weightedProgress}%;background:${project.color || "var(--accent)"}"></div></div>
       <div class="progress-label"><span>按日期条天数加权</span><span>${weightedProgress}%</span></div></div>`;
     html += `<div class="stat-card"><h3>关联任务</h3><div class="stat-number">${tasks.length}<span class="stat-unit">条</span></div></div>`;
-    html += `<div class="stat-card"><h3>任务总工时</h3><div class="stat-number">${totalDays}<span class="stat-unit">天</span></div></div>`;
+    html += `<div class="stat-card"><h3>任务总天数</h3><div class="stat-number">${totalDays}<span class="stat-unit">天</span></div></div>`;
     html += `<div class="stat-card"><h3>工程跨度</h3><div class="stat-number">${spanDays}<span class="stat-unit">天</span></div></div>`;
     html += `</div>`;
 
-    // Pie chart — step days distribution
+    // Pie chart – step days distribution
     if (project.steps.length > 0) {
       html += `<div class="stats-section"><h3>各步骤占用天数</h3>`;
       const stepData = project.steps.map((s, i) => ({
@@ -468,7 +540,7 @@
           const pct = total > 0 ? ((d.days / total) * 100).toFixed(1) : 0;
           html += `<div class="pie-legend-item"><span class="pie-legend-dot" style="background:${d.color}"></span>${
             d.title
-          }<span class="pie-legend-value">${d.days} 天 (${pct}%)</span></div>`;
+          }<span class="pie-legend-value">${d.days} 天(${pct}%)</span></div>`;
         });
         html += `</div></div>`;
       } else {
@@ -514,7 +586,7 @@
     html += `<div class="stats-grid">`;
     html += `<div class="stat-card"><h3>工程总数</h3><div class="stat-number">${projects.length}<span class="stat-unit">个</span></div></div>`;
     html += `<div class="stat-card"><h3>任务总数</h3><div class="stat-number">${totalTasks}<span class="stat-unit">条</span></div></div>`;
-    html += `<div class="stat-card"><h3>平均完成率（等分）</h3>
+    html += `<div class="stat-card"><h3>平均完成率（均分）</h3>
       <div class="progress-bar"><div class="progress-fill" style="width:${avgProgress}%;background:var(--accent)"></div></div>
       <div class="progress-label"><span>所有工程平均</span><span>${avgProgress}%</span></div></div>`;
     html += `<div class="stat-card"><h3>平均完成率（加权）</h3>
@@ -581,6 +653,26 @@
   ns.render.renderCalendar = renderCalendar;
   ns.render.renderTimeline = renderTimeline;
   ns.render.renderProjects = renderProjects;
+  ns.render.renderArchived = renderArchived;
   ns.render.renderDrafts = renderDrafts;
   ns.render.renderStats = renderStats;
 })(window.CamenCalendar = window.CamenCalendar || {});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
