@@ -214,6 +214,15 @@
         </div>
       </div>
     </div>
+    <div class="floating-card" id="review-card">
+      <div class="floating-card-icon">📊</div>
+      <div class="floating-card-content">
+        <div class="floating-card-title">回顾</div>
+        <div class="floating-card-actions">
+          <button type="button" class="btn-mini" id="review-btn">月度统计</button>
+        </div>
+      </div>
+    </div>
     <div class="floating-card" id="data-card">
       <div class="floating-card-icon">💾</div>
       <div class="floating-card-content">
@@ -221,6 +230,31 @@
         <div class="floating-card-actions">
           <button type="button" class="btn-mini" id="import-btn">导入</button>
           <button type="button" class="btn-mini" id="export-btn">导出</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 回顾日历弹窗 -->
+  <div id="review-overlay" class="modal-overlay" hidden>
+    <div class="modal review-modal">
+      <div class="modal-head">
+        <h3>月度回顾</h3>
+        <div class="review-nav">
+          <button type="button" class="btn-ghost" id="review-prev">←</button>
+          <span id="review-month-label"></span>
+          <button type="button" class="btn-ghost" id="review-next">→</button>
+        </div>
+        <button type="button" class="btn-ghost modal-close" id="review-close">关闭</button>
+      </div>
+      <div class="review-container">
+        <div class="review-card review-calendar-box">
+          <div class="review-card-title">日历视图</div>
+          <div id="review-calendar" class="review-calendar"></div>
+        </div>
+        <div class="review-card review-stats-box">
+          <div class="review-card-title">工程统计</div>
+          <div id="review-content" class="review-content"></div>
         </div>
       </div>
     </div>

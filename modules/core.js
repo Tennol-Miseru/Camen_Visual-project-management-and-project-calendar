@@ -147,7 +147,15 @@
       editorModalTitle: document.getElementById("editor-modal-title"),
       editorModalBody: document.getElementById("editor-modal-body"),
       editorVisibilityToggle: document.getElementById("editor-visibility-toggle"),
-      editorClose: document.getElementById("editor-close")
+      editorClose: document.getElementById("editor-close"),
+      reviewBtn: document.getElementById("review-btn"),
+      reviewOverlay: document.getElementById("review-overlay"),
+      reviewMonthLabel: document.getElementById("review-month-label"),
+      reviewCalendar: document.getElementById("review-calendar"),
+      reviewContent: document.getElementById("review-content"),
+      reviewPrev: document.getElementById("review-prev"),
+      reviewNext: document.getElementById("review-next"),
+      reviewClose: document.getElementById("review-close")
     };
 
     const ui = {
@@ -181,7 +189,8 @@
       sfxPrimed: false,
       currentEditorType: null,
       editorContentVisible: true,
-      shredTimer: null
+      shredTimer: null,
+      reviewMonth: null
     };
 
     return { storage, uuid, state, els, ui, constants, runtime, sfx };

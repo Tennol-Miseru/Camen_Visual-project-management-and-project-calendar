@@ -380,6 +380,323 @@
     ns.render.renderStats(ctx);
   }
 
+  function openReviewModal(ctx) {
+    ctx.runtime.reviewMonth = ctx.runtime.reviewMonth || new Date();
+    ctx.els.reviewOverlay.hidden = false;
+    renderReviewMonth(ctx);
+  }
+
+  function closeReviewModal(ctx) {
+    ctx.els.reviewOverlay.hidden = true;
+  }
+
+  function changeReviewMonth(ctx, delta) {
+    const d = ctx.runtime.reviewMonth;
+    d.setMonth(d.getMonth() + delta);
+    renderReviewMonth(ctx);
+  }
+
+  function renderReviewMonth(ctx) {
+    const d = ctx.runtime.reviewMonth;
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    const monthStr = `${year}年${month + 1}月`;
+
+    ctx.els.reviewMonthLabel.textContent = monthStr;
+
+    // 渲染日历
+    renderReviewCalendar(ctx);
+
+    // 计算该月有多少天
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+    const endDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+
+    // 当月第一天和最后一天的Date对象
+    const monthStartObj = new Date(year, month, 1);
+    const monthEndObj = new Date(year, month + 1, 0);
+    const monthStartTs = monthStartObj.getTime();
+    const monthEndTs = monthEndObj.getTime();
+
+    // 找出该月有任务的工程（包括已归档的）
+    const projectsInMonth = new Map();
+
+    ctx.state.projects.forEach((proj) => {
+      // 检查该工程在这个月是否有任务
+      const projTasks = ctx.state.tasks.filter((t) => {
+        if (t.projectId !== proj.id) return false;
+        // 任务在该月有重叠
+        return t.start <= endDate && t.end >= startDate;
+      });
+
+      if (projTasks.length > 0) {
+        // 获取该工程的所有任务（用于计算完整的时间分布）
+        const allProjectTasks = ctx.state.tasks.filter((t) => t.projectId === proj.id);
+
+        // 计算三个时段的统计（基于项目的所有任务）
+        let beforeMonthDays = 0;   // 当月以前（天数）
+        let currentMonthDays = 0; // 当月（天数）
+        let afterMonthDays = 0;   // 当月以后（天数）
+
+        let beforeCompleted = 0;
+        let currentCompleted = 0;
+
+        // 不加权：按任务数量计算
+        let beforeMonthCount = 0;   // 当月以前（任务数）
+        let currentMonthCount = 0; // 当月（任务数）
+        let afterMonthCount = 0;   // 当月以后（任务数）
+
+        allProjectTasks.forEach((t) => {
+          // 使用原始任务日期进行分段计算
+          const taskStartObj = ns.core.parseDate(t.start);
+          const taskEndObj = ns.core.parseDate(t.end);
+          const taskStartTs = taskStartObj.getTime();
+          const taskEndTs = taskEndObj.getTime();
+
+          // 检查任务是否完成（优先使用步骤的完成状态）
+          const isDone = ns.tasks.isTaskDone(ctx, t);
+
+          // 分配到三个时段
+          if (taskEndTs < monthStartTs) {
+            // 整个任务都在当月之前
+            const days = ns.tasks.calcTaskDays(ctx, t);
+            beforeMonthDays += days;
+            beforeMonthCount += 1;
+            if (isDone) beforeCompleted += days;
+          } else if (taskStartTs > monthEndTs) {
+            // 整个任务都在当月之后
+            const days = ns.tasks.calcTaskDays(ctx, t);
+            afterMonthDays += days;
+            afterMonthCount += 1;
+          } else {
+            // 任务跨越当月，需要分段计算
+            // 当月之前（如果有）
+            if (taskStartTs < monthStartTs) {
+              const beforeDays = Math.floor((monthStartTs - taskStartTs) / (1000 * 60 * 60 * 24));
+              beforeMonthDays += beforeDays;
+              beforeMonthCount += 1;
+              if (isDone) beforeCompleted += beforeDays;
+            }
+            // 当月
+            const currentStart = Math.max(taskStartTs, monthStartTs);
+            const currentEnd = Math.min(taskEndTs, monthEndTs);
+            const currentDays = Math.floor((currentEnd - currentStart) / (1000 * 60 * 60 * 24)) + 1;
+            currentMonthDays += currentDays;
+            currentMonthCount += 1;
+            // 当月的完成状态取决于任务整体是否完成
+            if (isDone) currentCompleted += currentDays;
+            // 当月之后（如果有）
+            if (taskEndTs > monthEndTs) {
+              const afterDays = Math.floor((taskEndTs - monthEndTs) / (1000 * 60 * 60 * 24));
+              afterMonthDays += afterDays;
+            }
+          }
+        });
+
+        const totalDays = beforeMonthDays + currentMonthDays + afterMonthDays;
+        const totalCount = beforeMonthCount + currentMonthCount + afterMonthCount;
+
+        // 不加权进度（按任务数量）
+        const unweightedBeforePct = totalCount > 0 ? Math.round((beforeMonthCount / totalCount) * 100) : 0;
+        const unweightedCurrentPct = totalCount > 0 ? Math.round((currentMonthCount / totalCount) * 100) : 0;
+        const unweightedAfterPct = totalCount > 0 ? Math.round((afterMonthCount / totalCount) * 100) : 0;
+
+        // 加权进度（按天数）
+        const weightedBeforePct = totalDays > 0 ? Math.round((beforeMonthDays / totalDays) * 100) : 0;
+        const weightedCurrentPct = totalDays > 0 ? Math.round((currentMonthDays / totalDays) * 100) : 0;
+        const weightedAfterPct = totalDays > 0 ? Math.round((afterMonthDays / totalDays) * 100) : 0;
+
+        const currentProgress = currentMonthDays > 0 ? Math.round((currentCompleted / currentMonthDays) * 100) : 0;
+
+        // 计算当月相对于整个项目的进度（不包含加权）
+        const projectTotalDays = ns.tasks.calcProjectTotalDays(ctx, proj.id);
+        const currentMonthProgress = projectTotalDays > 0 ? Math.round((currentMonthDays / projectTotalDays) * 100) : 0;
+
+        // 计算当月加权进度
+        const projectWeightedProgress = ns.tasks.calcProjectWeightedProgress(ctx, proj);
+
+        projectsInMonth.set(proj.id, {
+          project: proj,
+          taskCount: projTasks.length,
+          beforeMonthDays,
+          currentMonthDays,
+          afterMonthDays,
+          currentCompleted,
+          currentProgress,
+          currentMonthProgress,
+          projectWeightedProgress,
+          totalDays,
+          totalCount,
+          unweightedBeforePct,
+          unweightedCurrentPct,
+          unweightedAfterPct,
+          weightedBeforePct,
+          weightedCurrentPct,
+          weightedAfterPct
+        });
+      }
+    });
+
+    // 渲染
+    if (projectsInMonth.size === 0) {
+      ctx.els.reviewContent.innerHTML = `<div class="review-empty">${monthStr} 没有相关工程记录</div>`;
+      return;
+    }
+
+    const grid = document.createElement("div");
+    grid.className = "review-stats-grid";
+
+    projectsInMonth.forEach((data) => {
+      const proj = data.project;
+      const card = document.createElement("div");
+      card.className = "review-stat-card";
+
+      const color = proj.color || "#00bfa6";
+
+      // 统一使用工程颜色，只是通过透明度区分
+      const beforeColor = "rgba(167, 175, 190, 0.4)";
+      const currentColor = color;
+      const afterColor = "rgba(90, 200, 250, 0.5)";
+
+      card.innerHTML = `
+        <div class="project-name">
+          <span class="dot" style="background:${color}"></span>
+          ${proj.name}
+        </div>
+        <div class="stat-row">
+          <span>日期条</span>
+          <span class="stat-value">${data.taskCount}个</span>
+        </div>
+        <div class="stat-row month-stats">
+          <span>当月天数</span>
+          <span class="stat-value">${data.currentMonthDays}天</span>
+        </div>
+        <div class="stat-row">
+          <span>当月完成</span>
+          <span class="stat-value">${data.currentCompleted}/${data.currentMonthDays}天</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-segment before" style="width:${data.unweightedBeforePct}%;background:${beforeColor}"></div>
+          <div class="progress-segment current" style="width:${data.unweightedCurrentPct}%;background:${currentColor}"></div>
+          <div class="progress-segment after" style="width:${data.unweightedAfterPct}%;background:${afterColor}"></div>
+        </div>
+        <div class="progress-bar-label">按日期条数（不加权）</div>
+        <div class="progress-bar weighted">
+          <div class="progress-segment before" style="width:${data.weightedBeforePct}%;background:${beforeColor}"></div>
+          <div class="progress-segment current" style="width:${data.weightedCurrentPct}%;background:${currentColor}"></div>
+          <div class="progress-segment after" style="width:${data.weightedAfterPct}%;background:${afterColor}"></div>
+        </div>
+        <div class="progress-bar-label">按天数（加权）</div>
+        <div class="progress-legend">
+          <span>往月</span>
+          <span>本月</span>
+          <span>未来</span>
+        </div>
+        <div class="progress-label">
+          <span class="label-row">当月 ${data.currentMonthProgress}%</span>
+          <span class="label-row">(${data.currentProgress}%完成率)</span>
+          <span class="label-row weighted">加权 ${data.projectWeightedProgress}%</span>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    ctx.els.reviewContent.innerHTML = "";
+    ctx.els.reviewContent.appendChild(grid);
+  }
+
+  function renderReviewCalendar(ctx) {
+    const d = ctx.runtime.reviewMonth;
+    const year = d.getFullYear();
+    const month = d.getMonth();
+
+    // 当月天数
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+    const endDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+
+    // 当月第一天是周几（0=周日）
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+
+    // 获取所有任务（无论是否完成）
+    const monthTasks = ctx.state.tasks.filter((t) => {
+      return t.start <= endDate && t.end >= startDate;
+    });
+
+    // 按日期分组任务
+    const tasksByDate = {};
+    monthTasks.forEach((t) => {
+      const proj = ctx.state.projects.find((p) => p.id === t.projectId);
+      const color = proj?.color || t.color || "#00bfa6";
+      for (let d = new Date(ns.core.parseDate(t.start)); d <= ns.core.parseDate(t.end); d.setDate(d.getDate() + 1)) {
+        const dateStr = ns.core.toDateStrLocal(d);
+        if (!tasksByDate[dateStr]) tasksByDate[dateStr] = [];
+        tasksByDate[dateStr].push({ title: t.title, color });
+      }
+    });
+
+    // 构建日历HTML
+    const container = ctx.els.reviewCalendar;
+    container.innerHTML = "";
+
+    // 标题
+    const header = document.createElement("div");
+    header.className = "review-calendar-header";
+    const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
+    weekDays.forEach((day) => {
+      const span = document.createElement("span");
+      span.textContent = day;
+      span.className = "header";
+      header.appendChild(span);
+    });
+    container.appendChild(header);
+
+    // 日历网格
+    const grid = document.createElement("div");
+    grid.className = "review-calendar-grid";
+
+    // 填充空白
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      const empty = document.createElement("div");
+      empty.className = "review-calendar-day";
+      grid.appendChild(empty);
+    }
+
+    // 今天的日期
+    const today = ns.core.toDateStrLocal(new Date());
+
+    // 填充日期
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const dayEl = document.createElement("div");
+      dayEl.className = "review-calendar-day current-month";
+      if (dateStr === today) dayEl.classList.add("today");
+
+      const dayNum = document.createElement("span");
+      dayNum.className = "day-num";
+      dayNum.textContent = day;
+      dayEl.appendChild(dayNum);
+
+      // 显示任务点
+      if (tasksByDate[dateStr] && tasksByDate[dateStr].length > 0) {
+        const tasksDiv = document.createElement("div");
+        tasksDiv.className = "day-tasks";
+        tasksByDate[dateStr].forEach((task) => {
+          const dot = document.createElement("span");
+          dot.className = "day-task-dot";
+          dot.style.background = task.color;
+          dot.title = task.title;
+          tasksDiv.appendChild(dot);
+        });
+        dayEl.appendChild(tasksDiv);
+      }
+
+      grid.appendChild(dayEl);
+    }
+
+    container.appendChild(grid);
+  }
+
   ns.actions.persist = persist;
   ns.actions.showToast = showToast;
   ns.actions.applyTheme = applyTheme;
@@ -403,6 +720,10 @@
   ns.actions.showProjectStats = showProjectStats;
   ns.actions.archiveProject = archiveProject;
   ns.actions.autoArchiveIfComplete = autoArchiveIfComplete;
+  ns.actions.openReviewModal = openReviewModal;
+  ns.actions.closeReviewModal = closeReviewModal;
+  ns.actions.changeReviewMonth = changeReviewMonth;
+  ns.actions.renderReviewMonth = renderReviewMonth;
   ns.actions.playSfx = playSfx;
 })(window.CamenCalendar = window.CamenCalendar || {});
 

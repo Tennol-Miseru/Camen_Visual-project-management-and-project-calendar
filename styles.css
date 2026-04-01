@@ -106,6 +106,54 @@ body.dual-view #ratio-pill { display: inline-flex; }
 .btn-mini { border: 1px solid var(--grid-line); background: var(--chip-bg); color: var(--muted); border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 12px; font-weight: 600; }
 .btn-mini:hover { color: var(--text); background: var(--chip-hover); }
 
+.review-modal { width: 1100px !important; max-width: 94vw !important; display: flex !important; flex-direction: column !important; padding: 20px !important; gap: 16px !important; }
+.review-modal .modal-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; }
+.review-nav { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: center; }
+.review-nav #review-month-label { font-size: 15px; font-weight: 700; color: var(--text); min-width: 100px; text-align: center; }
+.review-content { overflow-y: auto; flex: 1; min-height: 200px; }
+
+.review-container { display: flex !important; gap: 20px !important; flex: 1 !important; min-height: 0 !important; }
+.review-card { background: var(--card); border: 1px solid var(--grid-line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; min-height: 0; }
+.review-card-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--grid-line); }
+.review-calendar-box { width: 380px !important; flex-shrink: 0 !important; overflow: hidden !important; }
+.review-stats-box { flex: 1 !important; min-width: 0 !important; }
+
+.review-calendar { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.review-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; flex: 1; min-height: 0; overflow-y: auto; }
+.review-calendar-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 10px; flex-shrink: 0; }
+.review-calendar-header span { text-align: center; font-size: 11px; color: var(--muted); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.review-calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 4px; border-radius: 6px; background: var(--chip-bg); font-size: 12px; color: var(--muted); position: relative; min-height: 42px; overflow: hidden; }
+.review-calendar-day.header { background: transparent; font-size: 11px; }
+.review-calendar-day.current-month { background: var(--card); color: var(--text); }
+.review-calendar-day.today { border: 2px solid var(--accent); }
+.review-calendar-day .day-num { font-weight: 600; margin-bottom: 2px; }
+.review-calendar-day .day-tasks { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
+.review-calendar-day .day-task-dot { width: 10px; height: 10px; border-radius: 50%; }
+.review-content { flex: 1; overflow-y: auto; min-width: 0; }
+
+.review-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr) !important; gap: 12px; }
+.review-stat-card { background: var(--card); border: 1px solid var(--grid-line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.review-stat-card .project-name { font-size: 14px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.review-stat-card .project-name .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.review-stat-card .stat-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.review-stat-card .stat-value { color: var(--text); font-weight: 600; }
+.review-stat-card .stat-value.highlight { color: var(--accent); font-size: 14px; }
+.review-stat-card .progress-bar { height: 6px; background: var(--chip-bg); border-radius: 3px; overflow: hidden; display: flex; margin-top: 6px; }
+.review-stat-card .progress-bar.weighted { height: 4px; margin-top: 4px; opacity: 0.8; }
+.review-stat-card .progress-bar-label { font-size: 10px; color: var(--muted); margin-top: 4px; }
+.review-stat-card .progress-legend { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-top: 2px; padding: 0 2px; }
+.review-stat-card .progress-segment { height: 100%; transition: width 0.3s ease; }
+.review-stat-card .progress-segment.before { border-radius: 3px 0 0 3px; }
+.review-stat-card .progress-segment.after { border-radius: 0 3px 3px 0; }
+.review-stat-card .progress-label { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--muted); margin-top: 6px; gap: 2px; }
+.review-stat-card .progress-label .label-row { display: block; width: 100%; text-align: center; }
+.review-stat-card .progress-label .label-row:first-child { color: var(--text); font-weight: 700; font-size: 13px; }
+.review-stat-card .progress-label .weighted { color: var(--accent); font-size: 10px; }
+.review-stat-card .stat-past { color: var(--muted); }
+.review-stat-card .stat-future { color: var(--accent); }
+
+.review-empty { text-align: center; padding: 48px 24px; color: var(--muted); font-size: 14px; }
+
 .floating-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #0b1324; border: none; border-radius: 12px; padding: 8px 14px; cursor: pointer; font-weight: 700; font-size: 13px; box-shadow: 0 8px 20px rgba(90, 200, 250, 0.3); transition: transform 0.15s, box-shadow 0.15s; }
 .floating-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(90, 200, 250, 0.4); }
 .floating-btn-icon { font-size: 16px; font-weight: 800; }

@@ -17,6 +17,7 @@
     bindFPD(ctx);
     bindMute(ctx);
     bindStats(ctx);
+    bindReview(ctx);
     // Prime audio on first interaction to satisfy autoplay policies
     const primeAudio = () => {
       if (ctx.runtime.sfxPrimed) return;
@@ -913,6 +914,36 @@
       ctx.els.statsOverlay.hidden = false;
       ns.render.renderStats(ctx);
     });
+  }
+
+  function bindReview(ctx) {
+    if (ctx.els.reviewBtn) {
+      ctx.els.reviewBtn.addEventListener("click", () => {
+        ns.actions.openReviewModal(ctx);
+      });
+    }
+    if (ctx.els.reviewClose) {
+      ctx.els.reviewClose.addEventListener("click", () => {
+        ns.actions.closeReviewModal(ctx);
+      });
+    }
+    if (ctx.els.reviewOverlay) {
+      ctx.els.reviewOverlay.addEventListener("click", (e) => {
+        if (e.target === ctx.els.reviewOverlay) {
+          ns.actions.closeReviewModal(ctx);
+        }
+      });
+    }
+    if (ctx.els.reviewPrev) {
+      ctx.els.reviewPrev.addEventListener("click", () => {
+        ns.actions.changeReviewMonth(ctx, -1);
+      });
+    }
+    if (ctx.els.reviewNext) {
+      ctx.els.reviewNext.addEventListener("click", () => {
+        ns.actions.changeReviewMonth(ctx, 1);
+      });
+    }
   }
 
   ns.bindings.init = init;
