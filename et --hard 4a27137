@@ -1,0 +1,125 @@
+[33mec056d1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{0}: reset: moving to HEAD~1
+[33mfb42ebf[m HEAD@{1}: reset: moving to HEAD~1~
+[33ma61379b[m HEAD@{2}: commit (merge): use local version
+[33m4a27137[m HEAD@{3}: rebase (abort): returning to refs/heads/main
+[33mdd16d36[m HEAD@{4}: rebase (start): checkout origin/main
+[33m4a27137[m HEAD@{5}: checkout: moving from stable-release to main
+[33m6af5ef0[m[33m ([m[1;31morigin/stable-release[m[33m, [m[1;32mstable-release[m[33m)[m HEAD@{6}: checkout: moving from main to stable-release
+[33m4a27137[m HEAD@{7}: checkout: moving from stable-release to main
+[33m6af5ef0[m[33m ([m[1;31morigin/stable-release[m[33m, [m[1;32mstable-release[m[33m)[m HEAD@{8}: checkout: moving from main to stable-release
+[33m4a27137[m HEAD@{9}: commit: 新增归档功能：当其工序全部被完成，项目现在会自动归档。当项目全完成归档时，关联日期条会从日历视图中清空。（还有有趣的小动画）；目前可能存在一些显示BUG，代办完成之后删。
+[33mfb42ebf[m HEAD@{10}: commit: UI优化，视图优化：不限期日期条完成后自动压缩，新增音效（可关闭）和日历模式，完善了数据导入系统：现已提供并入信息功能与复制内容、拖拽文件的两个导入方式。
+[33mec056d1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{11}: checkout: moving from stable-release to main
+[33m6af5ef0[m[33m ([m[1;31morigin/stable-release[m[33m, [m[1;32mstable-release[m[33m)[m HEAD@{12}: checkout: moving from main to stable-release
+[33mec056d1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{13}: checkout: moving from stable-release to main
+[33m6af5ef0[m[33m ([m[1;31morigin/stable-release[m[33m, [m[1;32mstable-release[m[33m)[m HEAD@{14}: checkout: moving from main to stable-release
+[33mec056d1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{15}: commit: feat: add mute toggle and inline sfx
+[33mbfd312d[m HEAD@{16}: reset: moving to origin/main
+[33md3286bf[m HEAD@{17}: rebase (abort): returning to refs/heads/main
+[33md3286bf[m HEAD@{18}: rebase (abort): returning to refs/heads/main
+[33m5b6a0ff[m HEAD@{19}: commit: chore: inline sfx data and ignore locked audio
+[33mabefa2d[m HEAD@{20}: commit (cherry-pick): feat: add mute toggle, inline sfx, darker calendar label
+[33md3286bf[m HEAD@{21}: checkout: moving from f175749bb04507cb9a6721414013ea5af558bf7e to main
+[33mf175749[m HEAD@{22}: commit: feat: add mute toggle, inline sfx, darker calendar label
+[33mbfd312d[m HEAD@{23}: pull --rebase origin main (start): checkout bfd312d5095f97123a1af9f6865233b9cc2eed1f
+[33md3286bf[m HEAD@{24}: commit: chore: inline sfx data and ignore locked audio
+[33mfc3cdc4[m HEAD@{25}: rebase (abort): returning to refs/heads/main
+[33mfc3cdc4[m HEAD@{26}: rebase (abort): returning to refs/heads/main
+[33mea4f272[m HEAD@{27}: commit: feat: add mute toggle, inline sfx, darker calendar label
+[33mfc3cdc4[m HEAD@{28}: checkout: moving from b1f12757528820f813ccbaaf17411b1f12357afa to main
+[33mb1f1275[m HEAD@{29}: commit: feat: add mute toggle and darker theme tweaks
+[33mbfd312d[m HEAD@{30}: pull --rebase origin main (start): checkout bfd312d5095f97123a1af9f6865233b9cc2eed1f
+[33mfc3cdc4[m HEAD@{31}: commit: feat: add mute toggle and refresh UI text
+[33m447c420[m HEAD@{32}: checkout: moving from stable-release to main
+[33m6af5ef0[m[33m ([m[1;31morigin/stable-release[m[33m, [m[1;32mstable-release[m[33m)[m HEAD@{33}: commit: Replace monolithic app.js with modular entrypoint
+[33m09bb16f[m HEAD@{34}: commit: feat: import modal with merge + no-end done restore
+[33ma9c0ec1[m HEAD@{35}: commit: chore: add missing module files
+[33m9363ac8[m HEAD@{36}: commit: feat: no-end done shrink + import merge option
+[33m447c420[m HEAD@{37}: checkout: moving from main to stable-release
+[33m447c420[m HEAD@{38}: commit: 帕金森按钮更新
+[33mc41cb79[m HEAD@{39}: commit: 更新了防帕金森定律按钮
+[33m00880f0[m HEAD@{40}: pull --rebase origin main (finish): returning to refs/heads/main
+[33m00880f0[m HEAD@{41}: pull --rebase origin main (pick): feat: add project color picker and Parkinson toggle
+[33mf80c5d5[m HEAD@{42}: pull --rebase origin main (start): checkout f80c5d592d365bfdeae72110ea3ce2073f83ba49
+[33m1e58fe7[m HEAD@{43}: commit: feat: add project color picker and Parkinson toggle
+[33m384b31c[m HEAD@{44}: pull --rebase origin main (finish): returning to refs/heads/main
+[33m384b31c[m HEAD@{45}: pull --rebase origin main (pick): feat: add project color picker and update legend
+[33m018ee63[m HEAD@{46}: pull --rebase origin main (start): checkout 018ee63e7ccd547f24ffc6d3d6668bbf9ed76c78
+[33m5eb0a9c[m HEAD@{47}: commit: feat: add project color picker and update legend
+[33m689df70[m HEAD@{48}: commit: chore: ignore and remove helper sh wrappers
+[33mfb393a3[m HEAD@{49}: pull --rebase origin main (finish): returning to refs/heads/main
+[33mfb393a3[m HEAD@{50}: pull --rebase origin main (pick): testnol
+[33mde415f3[m HEAD@{51}: pull --rebase origin main (pick): style: remove drop text on empty grid preview
+[33m2b27fb6[m HEAD@{52}: pull --rebase origin main (pick): ux: grid drop inserts by row position instead of end
+[33mc906f2b[m HEAD@{53}: pull --rebase origin main (pick): ux: allow timeline drop on empty space with grid preview
+[33m638d333[m HEAD@{54}: pull --rebase origin main (pick): chore: remove sunny theme option
+[33me1c80aa[m HEAD@{55}: pull --rebase origin main (pick): style: brighter sunny theme and more aggressive zoom
+[33m6baef1e[m HEAD@{56}: pull --rebase origin main (pick): style: swap gray/sunny palettes
+[33me82f157[m HEAD@{57}: pull --rebase origin main (pick): tweak: widen timeline zoom range
+[33meb17dd5[m HEAD@{58}: pull --rebase origin main (pick): tweak: enlarge toast and refine sunny theme
+[33m85cc72d[m HEAD@{59}: pull --rebase origin main (start): checkout 85cc72dc4ec4ddab7b49f30f30522be0e6803af9
+[33m2642ffa[m HEAD@{60}: Branch: renamed refs/heads/main to refs/heads/main
+[33m2642ffa[m HEAD@{62}: commit: testnol
+[33m3b4b980[m HEAD@{63}: commit: style: remove drop text on empty grid preview
+[33m675992d[m HEAD@{64}: commit: ux: grid drop inserts by row position instead of end
+[33m8c6cec5[m HEAD@{65}: commit: ux: allow timeline drop on empty space with grid preview
+[33m812d127[m HEAD@{66}: commit: chore: remove sunny theme option
+[33m858214f[m HEAD@{67}: commit: style: brighter sunny theme and more aggressive zoom
+[33m214734b[m HEAD@{68}: commit: style: swap gray/sunny palettes
+[33mdc48f3c[m HEAD@{69}: commit: tweak: widen timeline zoom range
+[33mc4aa254[m HEAD@{70}: commit: tweak: enlarge toast and refine sunny theme
+[33m7277583[m HEAD@{71}: pull --rebase origin main (finish): returning to refs/heads/main
+[33m7277583[m HEAD@{72}: pull --rebase origin main (pick): feat: add sunny theme and save toast
+[33m35d3fcf[m HEAD@{73}: pull --rebase origin main (pick): feat: add gray theme option
+[33mbf2edf5[m HEAD@{74}: pull --rebase origin main (pick): feat: draggable calendar chips and tidy drag hints
+[33m0fce930[m HEAD@{75}: pull --rebase origin main (start): checkout 0fce930b37d902a811851dc53c6831afb0df5090
+[33m716f221[m HEAD@{76}: commit: feat: add sunny theme and save toast
+[33m0cabc77[m HEAD@{77}: commit: feat: add gray theme option
+[33m9e52488[m HEAD@{78}: commit: feat: draggable calendar chips and tidy drag hints
+[33mf34d86a[m HEAD@{79}: pull --rebase origin main (finish): returning to refs/heads/main
+[33mf34d86a[m HEAD@{80}: pull --rebase origin main (pick): ux: clear timeline drop preview on drag end
+[33m506afa7[m HEAD@{81}: pull --rebase origin main (pick): ux: row-level drop preview for timeline drag
+[33m5d49c98[m HEAD@{82}: pull --rebase origin main (pick): ux: add drag preview/outline for timeline tasks
+[33md4ec8ee[m HEAD@{83}: pull --rebase origin main (pick): fix: limit step drag to handle to allow text selection
+[33m46e9461[m HEAD@{84}: pull --rebase origin main (pick): feat: project color opt-in and quick mode switches
+[33md69c98d[m HEAD@{85}: pull --rebase origin main (pick): tweak: stronger timeline zoom, keep drag order, show project tooltip on chips
+[33m5a8e213[m HEAD@{86}: pull --rebase origin main (pick): feat: timeline zoom and lane packing for non-overlapping tasks
+[33m77b70fa[m HEAD@{87}: pull --rebase origin main (pick): fix: syntax error in task update (missing comma)
+[33m3bb9b7d[m HEAD@{88}: pull --rebase origin main (pick): fix: guard calendar rendering against invalid tasks
+[33m255b5e2[m HEAD@{89}: pull --rebase origin main (start): checkout 255b5e20b49371fdb634719ace5e6877f7e25b7c
+[33m7d089fa[m HEAD@{90}: commit: ux: clear timeline drop preview on drag end
+[33m5841d4d[m HEAD@{91}: commit: ux: row-level drop preview for timeline drag
+[33ma2fe55d[m HEAD@{92}: commit: ux: add drag preview/outline for timeline tasks
+[33m030f6fb[m HEAD@{93}: commit: fix: limit step drag to handle to allow text selection
+[33me5af057[m HEAD@{94}: commit: feat: project color opt-in and quick mode switches
+[33m177027a[m HEAD@{95}: commit: tweak: stronger timeline zoom, keep drag order, show project tooltip on chips
+[33m4bc1707[m HEAD@{96}: commit: feat: timeline zoom and lane packing for non-overlapping tasks
+[33m7618b18[m HEAD@{97}: commit: fix: syntax error in task update (missing comma)
+[33m0897684[m HEAD@{98}: commit: fix: guard calendar rendering against invalid tasks
+[33mc5ff8bc[m HEAD@{99}: pull --rebase origin main (finish): returning to refs/heads/main
+[33mc5ff8bc[m HEAD@{100}: pull --rebase origin main (pick): chore: clarify no-end label to next month
+[33mcbbb37a[m HEAD@{101}: pull --rebase origin main (pick): feat: no-end tasks extend to next month end
+[33m494a9eb[m HEAD@{102}: pull --rebase origin main (pick): fix: force done styling on tasks linked to completed steps
+[33m6282b27[m HEAD@{103}: pull --rebase origin main (pick): feat: auto open project editor and restore done styling
+[33m703c968[m HEAD@{104}: pull --rebase origin main (pick): feat: draft delete and adjustable dual width
+[33m00884d9[m HEAD@{105}: pull --rebase origin main (start): checkout 00884d911b52ba92c1eb0d0c9834a072d91fc5a3
+[33m1cba36c[m HEAD@{106}: commit: chore: clarify no-end label to next month
+[33m02d2e10[m HEAD@{107}: commit: feat: no-end tasks extend to next month end
+[33mb8322d2[m HEAD@{108}: commit: fix: force done styling on tasks linked to completed steps
+[33m51184c0[m HEAD@{109}: commit: feat: auto open project editor and restore done styling
+[33m99477a6[m HEAD@{110}: commit: feat: draft delete and adjustable dual width
+[33m6fe0b26[m HEAD@{111}: commit: fix: restore calendar view, move filter, add step completion
+[33mb34870a[m HEAD@{112}: commit: ui: move step filter to calendar toolbar and clear seeds
+[33mf145f7e[m HEAD@{113}: rebase (finish): returning to refs/heads/main
+[33mf145f7e[m HEAD@{114}: rebase (pick): chore: remove default seed data
+[33m909819b[m HEAD@{115}: rebase (start): checkout origin/main
+[33m8aaa45a[m HEAD@{116}: commit: chore: remove default seed data
+[33m1f44663[m HEAD@{117}: rebase (finish): returning to refs/heads/main
+[33m1f44663[m HEAD@{118}: commit: docs: refresh README with bilingual overview
+[33me1c575d[m HEAD@{119}: rebase (start): checkout origin/main
+[33ma2d3d55[m HEAD@{120}: commit: docs: refresh README with bilingual overview
+[33m8f0ded4[m HEAD@{121}: checkout: moving from master to main
+[33m8bb73e3[m HEAD@{122}: rebase (finish): returning to refs/heads/master
+[33m8bb73e3[m HEAD@{123}: rebase (pick): chore: init engineering calendar
+[33m8f0ded4[m HEAD@{124}: rebase (start): checkout origin/main
+[33m49cd6d9[m HEAD@{125}: commit (initial): chore: init engineering calendar
