@@ -76,9 +76,10 @@
       filterStepId: null,
       timelineZoom: storage.load("calendar_timeline_zoom", 1),
       fpdEnabled: storage.load("calendar_fpd", false),
+      manualProgressEnabled: storage.load("calendar_manual_progress_enabled", true) !== false,
       muted: storage.load("calendar_muted", false),
       statsProjectId: null,
-      editorMode: storage.load("calendar_editor_mode", "modal")
+      editorMode: "modal"
     };
 
     const els = {
@@ -126,6 +127,7 @@
       ratioPill: document.getElementById("ratio-pill"),
       timelineZoom: document.getElementById("timeline-zoom"),
       fpdToggle: document.getElementById("fpd-toggle"),
+      manualProgressToggle: document.getElementById("manual-progress-toggle"),
       muteToggle: document.getElementById("mute-toggle"),
       noEnd: document.getElementById("no-end"),
       startDate: document.getElementById("start-date"),
@@ -147,15 +149,7 @@
       editorModalTitle: document.getElementById("editor-modal-title"),
       editorModalBody: document.getElementById("editor-modal-body"),
       editorVisibilityToggle: document.getElementById("editor-visibility-toggle"),
-      editorClose: document.getElementById("editor-close"),
-      reviewBtn: document.getElementById("review-btn"),
-      reviewOverlay: document.getElementById("review-overlay"),
-      reviewMonthLabel: document.getElementById("review-month-label"),
-      reviewCalendar: document.getElementById("review-calendar"),
-      reviewContent: document.getElementById("review-content"),
-      reviewPrev: document.getElementById("review-prev"),
-      reviewNext: document.getElementById("review-next"),
-      reviewClose: document.getElementById("review-close")
+      editorClose: document.getElementById("editor-close")
     };
 
     const ui = {
@@ -172,7 +166,7 @@
     };
 
     const constants = {
-      THEMES: ["black", "white", "gray"],
+      THEMES: ["black", "white", "gray", "mint", "peach", "sky", "rose", "sand", "forest", "midnight"],
       RATIO_DEFAULT: 70,
       ZOOM_MIN: 0.2,
       ZOOM_MAX: 4.5,
@@ -184,13 +178,13 @@
       editingTaskId: null,
       editingProjectId: null,
       draggingTaskId: null,
+      draggingProjectId: null,
       toastTimer: null,
       isMobile: false,
       sfxPrimed: false,
       currentEditorType: null,
       editorContentVisible: true,
-      shredTimer: null,
-      reviewMonth: null
+      shredTimer: null
     };
 
     return { storage, uuid, state, els, ui, constants, runtime, sfx };

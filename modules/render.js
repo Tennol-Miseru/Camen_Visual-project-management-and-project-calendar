@@ -1,4 +1,4 @@
-﻿(function (ns) {
+(function (ns) {
   "use strict";
 
   ns.render = ns.render || {};
@@ -58,6 +58,18 @@
     ctx.els.filterClear.hidden = !active;
   }
 
+  function getProjectManualProgress(ctx, project) {
+    const fallback = ns.tasks.calcProjectProgress(ctx, project);
+    const raw = Number(project?.manualProgress);
+    if (!Number.isFinite(raw)) return fallback;
+    return ns.core.clamp(Math.round(raw), 0, 100);
+  }
+
+  function paintManualProgressSlider(slider, value, color) {
+    slider.style.setProperty("--manual-progress", `${value}%`);
+    slider.style.setProperty("--manual-progress-color", color || "var(--accent)");
+  }
+
   function renderCalendar(ctx) {
     const year = ctx.state.viewDate.getFullYear();
     const month = ctx.state.viewDate.getMonth();
@@ -72,16 +84,13 @@
     weekdayNames.forEach((w) => {
       const label = document.createElement("div");
       label.textContent = w;
-      label.style.textAlign = "center";
-      label.style.color = "var(--muted)";
-      label.style.padding = "4px 0";
+      label.className = "calendar-weekday";
       ctx.els.calendarGrid.appendChild(label);
     });
 
     for (let i = 0; i < startOffset; i++) {
       const empty = document.createElement("div");
-      empty.className = "day";
-      empty.style.opacity = 0.3;
+      empty.className = "day calendar-empty";
       ctx.els.calendarGrid.appendChild(empty);
     }
 
@@ -90,6 +99,10 @@
       const dateStr = ns.core.toDateStrLocal(new Date(year, month, day));
       const cell = document.createElement("div");
       cell.className = "day";
+      cell.dataset.date = dateStr;
+      cell.tabIndex = 0;
+      cell.setAttribute("role", "button");
+      cell.setAttribute("aria-label", `${dateStr} 的日程；点击查看或新建`);
       if (dateStr === todayStr) cell.classList.add("today");
 
       const header = document.createElement("div");
@@ -100,7 +113,25 @@
       chipsBox.className = "chips";
 
       const dayTasks = tasks.filter((t) => dateStr >= t.start && dateStr <= t.end);
-      dayTasks.forEach((t) => chipsBox.appendChild(makeTaskChip(ctx, t)));
+      // Keep dense months readable. A small disclosure reveals all items for a day.
+      const compactLimit = 3;
+      const expanded = ctx.runtime.expandedCalendarDays?.has(dateStr);
+      dayTasks.slice(0, expanded ? undefined : compactLimit).forEach((t) => chipsBox.appendChild(makeTaskChip(ctx, t)));
+      if (dayTasks.length > compactLimit) {
+        const more = document.createElement("button");
+        more.type = "button";
+        more.className = "day-more";
+        more.textContent = expanded ? "收起" : `+${dayTasks.length - compactLimit} 项`;
+        more.setAttribute("aria-expanded", String(Boolean(expanded)));
+        more.setAttribute("aria-label", `${dateStr} ${expanded ? "收起日程" : "展开所有日程"}`);
+        more.addEventListener("click", () => {
+          if (!ctx.runtime.expandedCalendarDays) ctx.runtime.expandedCalendarDays = new Set();
+          if (expanded) ctx.runtime.expandedCalendarDays.delete(dateStr);
+          else ctx.runtime.expandedCalendarDays.add(dateStr);
+          renderCalendar(ctx);
+        });
+        chipsBox.appendChild(more);
+      }
 
       cell.appendChild(header);
       cell.appendChild(chipsBox);
@@ -113,12 +144,17 @@
     const node = tmpl.content.firstElementChild.cloneNode(true);
     if (ns.tasks.isTaskDone(ctx, task)) node.classList.add("done");
     node.querySelector(".dot").style.background = task.color;
+    node.style.setProperty("--task-color", /^#[0-9a-fA-F]{6}$/.test(task.color || "") ? task.color : "#827ce9");
     node.querySelector(".text").textContent = task.title;
     const projectName = ns.actions.getProjectName(ctx, task.projectId);
     const projLabel = projectName || "无所属";
     node.title = `${projLabel} | ${task.start} ~ ${task.end}`;
     node.setAttribute("data-project", projLabel);
     node.draggable = true;
+    node.tabIndex = 0;
+    node.setAttribute("role", "button");
+    node.setAttribute("aria-label", `编辑日期条 ${task.title}`);
+    node.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); ns.actions.startEditTask(ctx, task); } });
     node.dataset.taskId = task.id;
     node.dataset.projectId = task.projectId || "";
     node.addEventListener("dragstart", (e) => ns.bindings.onChipDragStart(ctx, e));
@@ -181,7 +217,7 @@
     const lanes = ns.tasks.packTasks(ctx, tasks);
     ctx.els.timelineGrid.innerHTML = "";
     if (tasks.length === 0) {
-      ctx.els.timelineGrid.textContent = "本月暂无日期条";
+      ctx.els.timelineGrid.innerHTML = '<div class="timeline-empty">本月暂无日期条，新建一条计划即可在这里看到它的时间跨度。</div>';
       return;
     }
 
@@ -193,10 +229,15 @@
         const bar = document.createElement("div");
         bar.className = "task-bar";
         bar.draggable = true;
+        bar.tabIndex = 0;
+        bar.setAttribute("role", "button");
+        bar.setAttribute("aria-label", `编辑时间轴日期条 ${task.title}`);
+        bar.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); ns.actions.startEditTask(ctx, task); } });
         bar.dataset.taskId = task.id;
         bar.dataset.projectId = task.projectId || "";
         if (ns.tasks.isTaskDone(ctx, task)) bar.classList.add("done");
         bar.style.background = task.color;
+        bar.style.setProperty("--task-color", /^#[0-9a-fA-F]{6}$/.test(task.color || "") ? task.color : "#827ce9");
         bar.style.gridColumn = `${ns.tasks.clampToMonth(ctx, task.start, year, month)} / ${
           ns.tasks.clampToMonth(ctx, task.end, year, month) + 1
         }`;
@@ -239,7 +280,19 @@
     ctx.els.projectsList.innerHTML = "";
     const list = ctx.state.projects.filter((p) => !p.draft && !p.archived);
     if (list.length === 0) {
-      ctx.els.projectsList.textContent = "暂无工程，先添加一个吧";
+      const empty = document.createElement("div");
+      empty.className = "project-list-empty";
+      empty.innerHTML = '<span class="empty-icon" aria-hidden="true">▤</span><strong>从第一个工程开始</strong><p>创建工程、拆解步骤，再把事项放进日历。</p>';
+      const create = document.createElement("button");
+      create.type = "button";
+      create.className = "floating-btn";
+      create.textContent = "+ 新建工程";
+      create.addEventListener("click", () => {
+        if (ctx.state.editorMode === "modal") ns.bindings.openProjectEditorModal(ctx);
+        else { ns.actions.resetProjectDraft(ctx); ctx.ui.projectDetails.open = true; ctx.ui.projectDetails.scrollIntoView({ block: "nearest" }); }
+      });
+      empty.appendChild(create);
+      ctx.els.projectsList.appendChild(empty);
       return;
     }
 
@@ -258,8 +311,44 @@
     list.forEach((p, idx) => {
       const card = document.createElement("div");
       card.className = "project-card";
+      card.dataset.projectId = p.id;
+      card.addEventListener("dragover", (e) => ns.bindings.onProjectDragOver(ctx, e));
+      card.addEventListener("dragleave", (e) => ns.bindings.onProjectDragLeave(ctx, e));
+      card.addEventListener("drop", (e) => ns.bindings.onProjectDrop(ctx, e));
+
       const head = document.createElement("div");
       head.className = "card-head";
+      const headMain = document.createElement("div");
+      headMain.className = "project-head-main";
+      const dragHandle = document.createElement("div");
+      dragHandle.className = "project-drag-handle";
+      dragHandle.textContent = "≡";
+      dragHandle.title = "拖拽排序";
+      dragHandle.draggable = true;
+      dragHandle.dataset.projectId = p.id;
+      dragHandle.addEventListener("dragstart", (e) => ns.bindings.onProjectDragStart(ctx, e));
+      dragHandle.addEventListener("dragend", () => ns.bindings.clearDragState(ctx));
+      if (ns.touch && ns.touch.isTouchDevice()) {
+        ns.touch.enableTouchDrag(dragHandle, {
+          onDragStart: function (e) { ns.bindings.onProjectDragStart(ctx, e); },
+          onDragOver: function (e) {
+            var card = e.currentTarget.closest && e.currentTarget.closest(".project-card");
+            if (card) { e.currentTarget = card; ns.bindings.onProjectDragOver(ctx, e); }
+          },
+          onDragLeave: function (e) {
+            var card = e.currentTarget.closest && e.currentTarget.closest(".project-card");
+            if (card) { e.currentTarget = card; ns.bindings.onProjectDragLeave(ctx, e); }
+          },
+          onDrop: function (e) {
+            var card = e.currentTarget.closest && e.currentTarget.closest(".project-card");
+            if (card) {
+              e.currentTarget = card;
+              ns.bindings.onProjectDrop(ctx, e);
+            }
+          },
+          onDragEnd: function () { ns.bindings.clearDragState(ctx); }
+        });
+      }
       const title = document.createElement("h3");
       title.textContent = p.name;
       const colorChip = document.createElement("span");
@@ -268,10 +357,9 @@
       chipDot.className = "dot";
       chipDot.style.background = p.color || "#00bfa6";
       colorChip.appendChild(chipDot);
-      head.appendChild(colorChip);
+      headMain.appendChild(dragHandle);
+      headMain.appendChild(colorChip);
       const actions = document.createElement("div");
-      actions.style.display = "flex";
-      actions.style.gap = "6px";
       const editBtn = document.createElement("button");
       editBtn.className = "btn-ghost";
       editBtn.textContent = "编辑";
@@ -287,11 +375,24 @@
       statsBtn.textContent = "统计";
       statsBtn.addEventListener("click", () => ns.actions.showProjectStats(ctx, p.id));
       actions.appendChild(statsBtn);
-      head.appendChild(title);
-      head.appendChild(actions);
+      headMain.appendChild(title);
+      head.appendChild(headMain);
+      const more = document.createElement("details");
+      more.className = "project-more";
+      const moreSummary = document.createElement("summary");
+      // Keep the icon independent from font wrapping and inherited word-breaking.
+      moreSummary.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
+      // aria-label provides an accessible name without a native tooltip over the card.
+      moreSummary.setAttribute("aria-label", `${p.name} · 更多操作`);
+      more.appendChild(moreSummary);
+      actions.className = "project-more-actions";
+      more.appendChild(actions);
+      actions.addEventListener("click", () => { more.open = false; });
+      head.appendChild(more);
 
       const desc = document.createElement("div");
-      desc.textContent = p.description || "（无简介）";
+      desc.textContent = p.description || "";
+      desc.className = "project-desc";
       title.style.cursor = "pointer";
       desc.style.cursor = "pointer";
       title.addEventListener("click", () => ns.actions.startEditProject(ctx, p));
@@ -299,13 +400,39 @@
 
       const stepsBox = document.createElement("div");
       stepsBox.className = "project-steps";
-      p.steps.forEach((s, stepIdx) => {
+      const expandedSteps = ctx.runtime.expandedProjectSteps?.has(p.id);
+      const maxSteps = 5;
+      p.steps.slice(0, expandedSteps ? undefined : maxSteps).forEach((s, stepIdx) => {
         const chip = document.createElement("div");
         chip.className = "step-chip";
         chip.dataset.stepId = s.id;
         const badgeColor = p.color || "#5ac8fa";
-        chip.innerHTML = `<span class="badge" style="background:${badgeColor}">${stepIdx + 1}</span> ${s.title}`;
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = String(stepIdx + 1);
+        badge.style.background = badgeColor;
+        const stepTitle = document.createElement("span");
+        stepTitle.className = "step-title";
+        stepTitle.textContent = s.title;
+        chip.append(badge, stepTitle);
         if (s.done) chip.classList.add("done");
+        if (ctx.state.filterProjectId === p.id && ctx.state.filterStepId === s.id) chip.classList.add("filter-active");
+        chip.tabIndex = 0;
+        chip.title = `筛选「${s.title}」关联的日程（双击编辑工程）`;
+        const goToStep = () => {
+          const same = ctx.state.filterProjectId === p.id && ctx.state.filterStepId === s.id;
+          ctx.state.filterProjectId = same ? "" : p.id;
+          ctx.state.filterStepId = same ? null : s.id;
+          ns.render.renderAll(ctx);
+          if (!document.body.classList.contains("dual-view")) {
+            document.querySelector('.tab[data-target="calendar-view"]')?.click();
+          }
+          document.getElementById("calendar-view")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        };
+        chip.addEventListener("click", goToStep);
+        chip.addEventListener("keydown", (ev) => {
+          if (ev.target === chip && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); goToStep(); }
+        });
         chip.addEventListener("dblclick", (ev) => {
           ev.stopPropagation();
           ns.actions.startEditProject(ctx, p);
@@ -322,7 +449,7 @@
         check.title = "标记该步骤完成";
         check.addEventListener("click", (ev) => {
           ev.stopPropagation();
-          s.done = !s.done;
+          s.done = check.checked;
           ns.actions.playSfx(ctx, "save");
           ctx.state.tasks.forEach((t) => {
             if (t.projectId === p.id && t.stepId === s.id) t.done = s.done;
@@ -338,14 +465,68 @@
         stepsBox.appendChild(chip);
       });
 
+      if (p.steps.length > maxSteps) {
+        const expand = document.createElement("button");
+        expand.type = "button";
+        expand.className = "step-more";
+        expand.textContent = expandedSteps ? "收起步骤 ↑" : `展开剩余 ${p.steps.length - maxSteps} 步 ↓`;
+        expand.addEventListener("click", () => {
+          if (!ctx.runtime.expandedProjectSteps) ctx.runtime.expandedProjectSteps = new Set();
+          if (expandedSteps) ctx.runtime.expandedProjectSteps.delete(p.id);
+          else ctx.runtime.expandedProjectSteps.add(p.id);
+          renderProjects(ctx);
+        });
+        stepsBox.appendChild(expand);
+      }
       const related = document.createElement("div");
-      related.style.color = "var(--muted)";
+      related.className = "project-related";
       const taskCount = ctx.state.tasks.filter((t) => t.projectId === p.id).length;
       related.textContent = `关联日期条：${taskCount} 条`;
 
+      let manualProgressWrap = null;
+      if (ctx.state.manualProgressEnabled) {
+        manualProgressWrap = document.createElement("div");
+        manualProgressWrap.className = "project-manual-progress";
+        const manualProgressHead = document.createElement("div");
+        manualProgressHead.className = "project-manual-progress-head";
+        const manualLabel = document.createElement("span");
+        manualLabel.textContent = "进度";
+        const manualValue = document.createElement("span");
+        manualValue.className = "manual-progress-value";
+        const manualSlider = document.createElement("input");
+        manualSlider.className = "manual-progress-slider";
+        manualSlider.type = "range";
+        manualSlider.min = "0";
+        manualSlider.max = "100";
+        manualSlider.step = "1";
+
+        const applyProgress = (value) => {
+          const safeValue = ns.core.clamp(Number(value) || 0, 0, 100);
+          manualSlider.value = String(safeValue);
+          manualValue.textContent = `${safeValue}%`;
+          paintManualProgressSlider(manualSlider, safeValue, p.color || "var(--accent)");
+          return safeValue;
+        };
+
+        const initialProgress = getProjectManualProgress(ctx, p);
+        applyProgress(initialProgress);
+
+        manualSlider.addEventListener("input", () => {
+          p.manualProgress = applyProgress(manualSlider.value);
+          ns.actions.persist(ctx);
+        });
+        manualSlider.addEventListener("change", () => ns.actions.playSfx(ctx, "save"));
+
+        manualProgressHead.appendChild(manualLabel);
+        manualProgressHead.appendChild(manualValue);
+        manualProgressWrap.appendChild(manualProgressHead);
+        manualProgressWrap.appendChild(manualSlider);
+      }
+
       card.appendChild(head);
-      card.appendChild(desc);
+      if (p.description) card.appendChild(desc);
       card.appendChild(stepsBox);
+      if (manualProgressWrap) card.appendChild(manualProgressWrap);
       card.appendChild(related);
       columns[idx % columnCount].appendChild(card);
     });
@@ -420,7 +601,7 @@
 
       const edit = document.createElement("button");
       edit.className = "btn-ghost";
-      edit.textContent = "编辑鑽夌";
+      edit.textContent = "编辑草稿";
       edit.addEventListener("click", () => ns.actions.startEditProject(ctx, p));
 
       const publish = document.createElement("button");

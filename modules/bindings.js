@@ -1,4 +1,4 @@
-﻿(function (ns) {
+(function (ns) {
   "use strict";
 
   ns.bindings = ns.bindings || {};
@@ -16,8 +16,8 @@
     bindNoEnd(ctx);
     bindFPD(ctx);
     bindMute(ctx);
+    bindManualProgress(ctx);
     bindStats(ctx);
-    bindReview(ctx);
     // Prime audio on first interaction to satisfy autoplay policies
     const primeAudio = () => {
       if (ctx.runtime.sfxPrimed) return;
@@ -71,10 +71,6 @@
     });
     if (ns.actions.applyEditorMode) ns.actions.applyEditorMode(ctx, ctx.state.editorMode);
     else ns.render.renderAll(ctx);
-    // 默认使用弹窗模式
-    ctx.state.editorMode = "modal";
-    ctx.storage.save("calendar_editor_mode", "modal");
-    if (ns.actions.applyEditorMode) ns.actions.applyEditorMode(ctx, "modal");
     syncDualColumnHeights(ctx);
   }
 
@@ -226,6 +222,7 @@
           description: data.description || "",
           steps,
           color: data.projectColor || "#00bfa6",
+          manualProgress: 0,
           draft: isDraft,
           archived: false,
           archivedAt: null
@@ -360,6 +357,19 @@
       ns.actions.showToast(ctx, ctx.state.muted ? "已静音" : "已开启音效");
     };
     ctx.els.muteToggle.addEventListener("change", apply);
+  }
+
+  function bindManualProgress(ctx) {
+    if (!ctx.els.manualProgressToggle) return;
+    ctx.els.manualProgressToggle.checked = Boolean(ctx.state.manualProgressEnabled);
+    const apply = () => {
+      ctx.state.manualProgressEnabled = ctx.els.manualProgressToggle.checked;
+      ctx.storage.save("calendar_manual_progress_enabled", ctx.state.manualProgressEnabled);
+      ns.render.renderProjects(ctx);
+      syncDualColumnHeights(ctx);
+      ns.actions.showToast(ctx, ctx.state.manualProgressEnabled ? "已显示手动进度条" : "已隐藏手动进度条");
+    };
+    ctx.els.manualProgressToggle.addEventListener("change", apply);
   }
 
   function bindEditorMode(ctx) {
@@ -551,7 +561,7 @@
     if (!form || !projectSelect || !stepSelect) return;
 
     projectSelect.innerHTML = `<option value="">（可选）</option>`;
-    ctx.state.projects.filter((p) => !p.draft).forEach((p) => {
+    ctx.state.projects.filter((p) => !p.draft && !p.archived).forEach((p) => {
       const opt = document.createElement("option");
       opt.value = p.id;
       opt.textContent = p.name;
@@ -659,7 +669,8 @@
       ctx.runtime.stepDraft.forEach((step, idx) => {
         const row = document.createElement("div");
         row.className = "step-row";
-        row.innerHTML = `<input type="text" value="${step.title || ""}" placeholder="步骤 ${idx + 1}" data-step-index="${idx}"><button type="button" class="btn-ghost" data-remove="${idx}">删除</button>`;
+        row.innerHTML = `<input type="text" placeholder="步骤 ${idx + 1}" data-step-index="${idx}"><button type="button" class="btn-ghost" data-remove="${idx}">删除</button>`;
+        row.querySelector("input").value = step.title || "";
         stepList.appendChild(row);
       });
       stepList.querySelectorAll("[data-remove]").forEach((btn) => btn.addEventListener("click", () => {
@@ -695,7 +706,17 @@
         const target = ctx.state.projects.find((p) => p.id === ctx.runtime.editingProjectId);
         if (target) Object.assign(target, { name: data.name.trim(), description: data.description || "", color: data.projectColor || "#00bfa6", draft: !!draftCheck?.checked, steps });
       } else {
-        ctx.state.projects.push({ id: `proj-${ctx.uuid()}`, name: data.name.trim(), description: data.description || "", color: data.projectColor || "#00bfa6", draft: !!draftCheck?.checked, archived: false, archivedAt: null, steps });
+        ctx.state.projects.push({
+          id: `proj-${ctx.uuid()}`,
+          name: data.name.trim(),
+          description: data.description || "",
+          color: data.projectColor || "#00bfa6",
+          manualProgress: 0,
+          draft: !!draftCheck?.checked,
+          archived: false,
+          archivedAt: null,
+          steps
+        });
       }
       ns.actions.persist(ctx);
       ns.actions.resetProjectDraft(ctx);
@@ -717,53 +738,131 @@
   }
 
   function bindImportExport(ctx) {
-    if (ctx.els.exportBtn) {
-      ctx.els.exportBtn.addEventListener("click", () => {
-        const payload = {
-          projects: ctx.state.projects,
-          tasks: ctx.state.tasks,
-          theme: document.body.dataset.theme || "black",
-          fpdEnabled: Boolean(ctx.state.fpdEnabled),
-          exportedAt: new Date().toISOString()
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `engineering-calendar-${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-      });
-    }
+    const overlay = ctx.els.importOverlay;
+    const closeImport = () => { if (overlay) overlay.hidden = true; };
+    const openImport = () => {
+      if (overlay) overlay.hidden = false;
+      else ctx.els.importFile?.click();
+    };
 
-    if (ctx.els.importBtn && ctx.els.importFile) {
-      ctx.els.importBtn.addEventListener("click", () => ctx.els.importFile.click());
-      ctx.els.importFile.addEventListener("change", async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        try {
-          const text = await file.text();
-          const data = JSON.parse(text);
-          const projects = Array.isArray(data.projects) ? data.projects : [];
-          const tasks = Array.isArray(data.tasks) ? data.tasks : [];
-          if (projects.length === 0 && tasks.length === 0) throw new Error("导入内容为空或格式不对");
-          ctx.state.projects = projects;
-          ctx.state.tasks = tasks;
-          const theme = ctx.constants.THEMES.includes(data.theme) ? data.theme : "black";
-          ns.actions.applyTheme(ctx, theme);
-          ctx.storage.save("calendar_theme", theme);
-          ns.actions.persist(ctx);
-          ns.actions.populateProjectSelect(ctx);
-          ns.render.renderAll(ctx);
-          alert("保存成功");
-        } catch (err) {
-          console.error(err);
-          alert("导入失败，请确认文件为工程日历导出的 JSON 数据");
-        } finally {
-          e.target.value = "";
+    ctx.els.exportBtn?.addEventListener("click", () => {
+      const payload = {
+        projects: ctx.state.projects,
+        tasks: ctx.state.tasks,
+        theme: document.body.dataset.theme || "white",
+        fpdEnabled: Boolean(ctx.state.fpdEnabled),
+        manualProgressEnabled: Boolean(ctx.state.manualProgressEnabled),
+        exportedAt: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `camen-backup-${ns.core.toDateStrLocal(new Date())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      ns.actions.showToast(ctx, "备份已导出");
+    });
+
+    const normalize = (data) => {
+      if (!data || typeof data !== "object" || !Array.isArray(data.projects) || !Array.isArray(data.tasks)) {
+        throw new Error("不是有效的卡门备份：需包含 projects 和 tasks 数组");
+      }
+      if (data.projects.some((p) => !p || typeof p.id !== "string" || typeof p.name !== "string" || !Array.isArray(p.steps)) ||
+          data.tasks.some((t) => !t || typeof t.id !== "string" || typeof t.title !== "string" || !t.start || !t.end)) {
+        throw new Error("项目或日程字段不完整，请检查备份文件");
+      }
+      // Reject duplicate identifiers and invalid date ranges before touching local data.
+      for (const [label, collection] of [["工程",data.projects],["日程",data.tasks]]) {
+        const ids = new Set();
+        for (const item of collection) {
+          if (!item.id.trim() || ids.has(item.id)) throw new Error(`${label} ID 为空或重复：${item.id}`);
+          ids.add(item.id);
         }
-      });
-    }
+      }
+      for (const t of data.tasks) {
+        if (!ns.stability?.validDate(t.start) || !ns.stability?.validDate(t.end) || t.start > t.end) {
+          throw new Error(`日程「${t.title}」日期无效：${t.start} ~ ${t.end}`);
+        }
+      }
+      return data;
+    };
+
+    const importData = (source) => {
+      const data = normalize(source);
+      const merge = Boolean(ctx.els.importMerge?.checked);
+      const conflictsProjects = merge ? data.projects.filter(p => ctx.state.projects.some(x => x.id === p.id && JSON.stringify(x) !== JSON.stringify(p))).length : 0;
+      const conflictsTasks = merge ? data.tasks.filter(t => ctx.state.tasks.some(x => x.id === t.id && JSON.stringify(x) !== JSON.stringify(t))).length : 0;
+      const question = merge
+        ? `准备合并 ${data.projects.length} 个工程、${data.tasks.length} 条日程。\n发现 ${conflictsProjects} 个工程 / ${conflictsTasks} 条日程与现有同 ID 数据不同，将以导入版本更新。\n导入前会自动创建可恢复快照，是否继续？`
+        : `准备导入 ${data.projects.length} 个工程、${data.tasks.length} 条日程。\n${ctx.state.projects.length || ctx.state.tasks.length ? '这将替换当前所有工程与日程。' : '当前无已有数据。'}\n导入前会自动创建可恢复快照，是否继续？`;
+      if (!confirm(question)) return false;
+      if (!ns.stability?.beforeImport?.(ctx)) {
+        throw new Error("无法写入导入前备份（存储空间可能不足）。请先导出当前数据并释放空间后重试。");
+      }
+      const byId = (current, incoming) => {
+        const map = new Map();
+        current.forEach((item) => map.set(item.id, item));
+        incoming.forEach((item) => map.set(item.id, item));
+        return Array.from(map.values());
+      };
+      ctx.state.projects = merge ? byId(ctx.state.projects, data.projects) : data.projects;
+      ctx.state.tasks = merge ? byId(ctx.state.tasks, data.tasks) : data.tasks;
+      if (typeof data.manualProgressEnabled === "boolean") {
+        ctx.state.manualProgressEnabled = data.manualProgressEnabled;
+        ctx.storage.save("calendar_manual_progress_enabled", data.manualProgressEnabled);
+        if (ctx.els.manualProgressToggle) ctx.els.manualProgressToggle.checked = data.manualProgressEnabled;
+      }
+      if (typeof data.fpdEnabled === "boolean") {
+        ctx.state.fpdEnabled = data.fpdEnabled;
+        ctx.storage.save("calendar_fpd", data.fpdEnabled);
+        if (ctx.els.fpdToggle) ctx.els.fpdToggle.checked = data.fpdEnabled;
+      }
+      if (ctx.constants.THEMES.includes(data.theme)) {
+        ns.actions.applyTheme(ctx, data.theme);
+        ctx.storage.save("calendar_theme", data.theme);
+        if (ctx.els.themeSelect) ctx.els.themeSelect.value = data.theme;
+      }
+      ctx.state.filterProjectId = "";
+      ctx.state.filterStepId = null;
+      ns.actions.persist(ctx);
+      ns.render.renderAll(ctx);
+      ns.actions.showToast(ctx, `已${merge ? "合并" : "导入"} ${data.projects.length} 个工程、${data.tasks.length} 条日程`);
+      closeImport();
+      if (ctx.els.importText) ctx.els.importText.value = "";
+      return true;
+    };
+    const readFile = async (file) => {
+      if (!file) return;
+      try { importData(JSON.parse(await file.text())); }
+      catch (error) { alert(`导入失败：${error.message || "文件格式有误"}`); }
+      finally { if (ctx.els.importFile) ctx.els.importFile.value = ""; }
+    };
+
+    ctx.els.importBtn?.addEventListener("click", openImport);
+    ctx.els.importClose?.addEventListener("click", closeImport);
+    overlay?.addEventListener("click", (event) => { if (event.target === overlay) closeImport(); });
+    ctx.els.importChoose?.addEventListener("click", () => ctx.els.importFile?.click());
+    ctx.els.importDrop?.addEventListener("click", (event) => {
+      if (!event.target.closest("button")) ctx.els.importFile?.click();
+    });
+    ctx.els.importFile?.addEventListener("change", (event) => readFile(event.target.files?.[0]));
+    ctx.els.importDrop?.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      ctx.els.importDrop.classList.add("dragover");
+    });
+    ctx.els.importDrop?.addEventListener("dragleave", () => ctx.els.importDrop.classList.remove("dragover"));
+    ctx.els.importDrop?.addEventListener("drop", (event) => {
+      event.preventDefault();
+      ctx.els.importDrop.classList.remove("dragover");
+      readFile(event.dataTransfer?.files?.[0]);
+    });
+    ctx.els.importPasteBtn?.addEventListener("click", () => {
+      try { importData(JSON.parse(ctx.els.importText?.value || "")); }
+      catch (error) { alert(`导入失败：${error.message || "不是有效 JSON"}`); }
+    });
   }
 
   // DnD & reorder helpers
@@ -772,8 +871,11 @@
     document.querySelectorAll(".task-bar.dragging").forEach((b) => b.classList.remove("dragging"));
     document.querySelectorAll(".task-chip.dragging").forEach((c) => c.classList.remove("dragging"));
     document.querySelectorAll(".task-chip.preview").forEach((c) => c.classList.remove("preview"));
+    document.querySelectorAll(".project-card.dragging").forEach((card) => card.classList.remove("dragging"));
+    document.querySelectorAll(".project-card.preview").forEach((card) => card.classList.remove("preview"));
     if (ctx.els.timelineGrid) ctx.els.timelineGrid.classList.remove("preview-grid");
     ctx.runtime.draggingTaskId = null;
+    ctx.runtime.draggingProjectId = null;
   }
 
   function onChipDragStart(ctx, e) {
@@ -905,6 +1007,60 @@
     ns.render.renderAll(ctx);
   }
 
+  function moveProjectWithinArray(ctx, fromId, toId, placeAfter) {
+    const projects = ctx.state.projects;
+    const fromIndex = projects.findIndex((project) => project.id === fromId);
+    const toIndex = projects.findIndex((project) => project.id === toId);
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return false;
+    const fromProject = projects[fromIndex];
+    const toProject = projects[toIndex];
+    if (!fromProject || !toProject) return false;
+    if (fromProject.draft || fromProject.archived) return false;
+    if (toProject.draft || toProject.archived) return false;
+
+    const [moved] = projects.splice(fromIndex, 1);
+    let insertIndex = placeAfter ? toIndex + 1 : toIndex;
+    if (fromIndex < insertIndex) insertIndex -= 1;
+    projects.splice(insertIndex, 0, moved);
+    return true;
+  }
+
+  function onProjectDragStart(ctx, e) {
+    e.dataTransfer.effectAllowed = "move";
+    const projectId = e.currentTarget.dataset.projectId;
+    if (!projectId) return;
+    e.dataTransfer.setData("text/plain", projectId);
+    ctx.runtime.draggingProjectId = projectId;
+    const card = e.currentTarget.closest(".project-card");
+    if (card) card.classList.add("dragging");
+  }
+
+  function onProjectDragOver(ctx, e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const card = e.currentTarget.closest ? e.currentTarget.closest(".project-card") : e.currentTarget;
+    if (card) card.classList.add("preview");
+  }
+
+  function onProjectDragLeave(ctx, e) {
+    const card = e.currentTarget.closest ? e.currentTarget.closest(".project-card") : e.currentTarget;
+    if (card) card.classList.remove("preview");
+  }
+
+  function onProjectDrop(ctx, e) {
+    e.preventDefault();
+    const fromId = e.dataTransfer.getData("text/plain") || ctx.runtime.draggingProjectId;
+    const toId = e.currentTarget.dataset.projectId;
+    if (!fromId || !toId || fromId === toId) return;
+    const card = e.currentTarget.closest ? e.currentTarget.closest(".project-card") : e.currentTarget;
+    const rect = card?.getBoundingClientRect?.();
+    const placeAfter = rect ? e.clientY > rect.top + rect.height / 2 : false;
+    if (!moveProjectWithinArray(ctx, fromId, toId, placeAfter)) return;
+    clearDragState(ctx);
+    ns.actions.persist(ctx);
+    ns.render.renderAll(ctx);
+  }
+
   function bindStats(ctx) {
     ctx.els.statsClose.addEventListener("click", () => {
       ctx.els.statsOverlay.hidden = true;
@@ -914,36 +1070,6 @@
       ctx.els.statsOverlay.hidden = false;
       ns.render.renderStats(ctx);
     });
-  }
-
-  function bindReview(ctx) {
-    if (ctx.els.reviewBtn) {
-      ctx.els.reviewBtn.addEventListener("click", () => {
-        ns.actions.openReviewModal(ctx);
-      });
-    }
-    if (ctx.els.reviewClose) {
-      ctx.els.reviewClose.addEventListener("click", () => {
-        ns.actions.closeReviewModal(ctx);
-      });
-    }
-    if (ctx.els.reviewOverlay) {
-      ctx.els.reviewOverlay.addEventListener("click", (e) => {
-        if (e.target === ctx.els.reviewOverlay) {
-          ns.actions.closeReviewModal(ctx);
-        }
-      });
-    }
-    if (ctx.els.reviewPrev) {
-      ctx.els.reviewPrev.addEventListener("click", () => {
-        ns.actions.changeReviewMonth(ctx, -1);
-      });
-    }
-    if (ctx.els.reviewNext) {
-      ctx.els.reviewNext.addEventListener("click", () => {
-        ns.actions.changeReviewMonth(ctx, 1);
-      });
-    }
   }
 
   ns.bindings.init = init;
@@ -963,6 +1089,10 @@
   ns.bindings.onTaskDragOver = onTaskDragOver;
   ns.bindings.onTaskDragLeave = onTaskDragLeave;
   ns.bindings.onTaskDrop = onTaskDrop;
+  ns.bindings.onProjectDragStart = onProjectDragStart;
+  ns.bindings.onProjectDragOver = onProjectDragOver;
+  ns.bindings.onProjectDragLeave = onProjectDragLeave;
+  ns.bindings.onProjectDrop = onProjectDrop;
   ns.bindings.openTaskEditorModal = openTaskEditorModal;
   ns.bindings.openProjectEditorModal = openProjectEditorModal;
 })(window.CamenCalendar = window.CamenCalendar || {});

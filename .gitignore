@@ -4,3 +4,20 @@ sh.exe
 .codex
 .gitconfig_local
 backup/
+et --hard*
+*-backup-*.zip
+engineering-calendar-*.json
+
+# Local development and user data
+.DS_Store
+Thumbs.db
+.idea/
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+*.bak
+*.tmp
+*.local
+*.code-workspace
